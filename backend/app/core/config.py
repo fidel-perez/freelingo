@@ -44,6 +44,8 @@ class Settings(BaseSettings):
     STT_PROVIDER: str = "local"  # local | openai
     STT_BASE_URL: str = "http://whisper:9000"
     OPENAI_STT_MODEL: str = "whisper-1"
+    PRONUNCIATION_PROVIDER: str = "llm"  # llm | local
+    PRONUNCIATION_BASE_URL: str = ""
     RATE_LIMIT_ENABLED: bool = True
     CORS_ORIGINS: list[str] = ["http://localhost:3000"]
     COOKIE_SECURE: bool = False

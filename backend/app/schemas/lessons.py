@@ -165,12 +165,19 @@ class FreeWriteCorrection(BaseModel):
     explanation: str = ""
 
 
+class PronunciationWordScore(BaseModel):
+    word: str
+    score: float
+    weak_phonemes: list[str]
+
+
 class ExerciseAnswerResponse(BaseModel):
     id: int
     score: float
     feedback: str
     correct_answer: str
     corrections: list[FreeWriteCorrection] | None = None
+    words: list[PronunciationWordScore] | None = None
 
 
 def _is_usable_correction(item: object) -> bool:

@@ -72,6 +72,8 @@ services:
       STT_PROVIDER: ${STT_PROVIDER:-local}
       STT_BASE_URL: ${STT_BASE_URL:-http://whisper:9000}
       OPENAI_STT_MODEL: ${OPENAI_STT_MODEL:-whisper-1}
+      PRONUNCIATION_PROVIDER: ${PRONUNCIATION_PROVIDER:-llm}
+      PRONUNCIATION_BASE_URL: ${PRONUNCIATION_BASE_URL:-}
       CORS_ORIGINS: ${CORS_ORIGINS:-["http://localhost:3000"]}
       COOKIE_SECURE: ${COOKIE_SECURE:-false}
       ALLOW_REGISTRATION: ${ALLOW_REGISTRATION:-true}
@@ -187,3 +189,15 @@ services:
             - driver: nvidia
               count: 1
               capabilities: [gpu]
+
+  # Pronunciation scoring (phoneme recogniser) ─────────────────────
+  # Only required when PRONUNCIATION_PROVIDER=local; the default llm needs no service.
+  # Start with: docker compose --profile pronunciation up
+  # Set PRONUNCIATION_BASE_URL=http://pronunciation:8000 on the backend.
+  pronunciation:
+    build: ./pronunciation-server
+    container_name: freelingo-pronunciation
+    restart: unless-stopped
+    profiles: ["pronunciation"]
+    environment:
+      - PYTHONUNBUFFERED=1

@@ -5,7 +5,8 @@ import re
 from datetime import UTC, datetime
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Path, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Path, Request, UploadFile, status
+from pydantic import ValidationError
 from redis.asyncio import Redis
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -32,6 +33,7 @@ from app.schemas.lessons import (
     NativeExerciseHintResponse,
     NativeExplanationResponse,
     NativeQuestionTranslation,
+    PronunciationWordScore,
     QuestionTranslationResponse,
 )
 from app.services.language_helpers import get_language_name, get_native_language_name
@@ -52,6 +54,10 @@ from app.services.llm_adapter import (
 from app.services.mistake_service import log_mistakes
 from app.services.progress_rewards import reward_plan_completion
 from app.services.progress_service import update_daily_progress, upsert_unit_competency
+from app.services.pronunciation_service import (
+    PronunciationUnavailable,
+    get_pronunciation_provider,
+)
 from app.utils.lesson_exercises import (
     cached_question_translation,
     exercise_listening_ready,
@@ -535,15 +541,34 @@ async def complete_lesson(
     return lesson
 
 
+async def _answer_payload(request: Request) -> tuple[ExerciseAnswerRequest, UploadFile | None]:
+    """Read the answer from JSON, or from multipart form fields `answer` and `audio`."""
+    if request.headers.get("content-type", "").startswith("multipart/form-data"):
+        form = await request.form()
+        answer, audio = form.get("answer"), form.get("audio")
+        if not isinstance(answer, str):
+            raise HTTPException(status_code=422, detail="Field 'answer' is required")
+        return ExerciseAnswerRequest(answer=answer), audio if hasattr(audio, "read") else None
+    try:
+        return ExerciseAnswerRequest.model_validate_json(await request.body()), None
+    except ValidationError as exc:
+        raise HTTPException(
+            status_code=422,
+            detail=exc.errors(include_url=False, include_input=False, include_context=False),
+        ) from exc
+
+
 @router.post("/exercises/{exercise_id}/answer", response_model=ExerciseAnswerResponse)
 @limiter.limit("20/minute")
 async def answer_exercise(
     request: Request,
     exercise_id: int,
-    data: ExerciseAnswerRequest,
     current_user: User = Depends(get_current_user),
+    payload: tuple[ExerciseAnswerRequest, UploadFile | None] = Depends(_answer_payload),
     db: AsyncSession = Depends(get_db),
 ):
+    data, audio = payload
+    word_scores: list[PronunciationWordScore] | None = None
     exercise = await db.get(Exercise, exercise_id)
     if not exercise:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Exercise not found")
@@ -653,35 +678,57 @@ async def answer_exercise(
             )
     elif exercise.exercise_type == "pronunciation":
         transcription = data.answer
-        try:
-            eval_result = await evaluate_pronunciation(
-                cefr_level=lesson.cefr_level,
-                target=exercise.correct_answer,
-                transcription=transcription,
-                target_language=target_language,
-                native_language=current_user.native_language,
-            )
-            exercise.score = eval_result.score
-            exercise.feedback = eval_result.feedback
-        except LLMTimeoutError, LLMUnavailableError, LLMError:
-            # Fallback: normalised comparison stripping punctuation
-            norm_target = re.sub(r"[^\w\s]", "", exercise.correct_answer).strip().lower()
-            norm_answer = re.sub(r"[^\w\s]", "", transcription).strip().lower()
-            is_close = (
-                norm_target == norm_answer
-                or norm_target in norm_answer
-                or norm_answer in norm_target
-            )
-            exercise.score = 1.0 if is_close else 0.0
-            exercise.feedback = (
-                _answer_feedback(current_user.native_language, "good_pronunciation")
-                if is_close
-                else _answer_feedback(
-                    current_user.native_language,
-                    "target_phrase",
-                    answer=exercise.correct_answer,
+        local = None
+        provider = get_pronunciation_provider() if audio is not None else None
+        if provider is not None:
+            try:
+                local = await provider.score(
+                    await audio.read(),
+                    audio.filename or "audio.webm",
+                    audio.content_type or "audio/webm",
+                    target=exercise.correct_answer,
+                    target_language=target_language,
                 )
+            except PronunciationUnavailable:
+                local = None
+        if local is not None:
+            exercise.score = local.score
+            exercise.feedback = _answer_feedback(
+                current_user.native_language,
+                "good_pronunciation" if local.score >= 0.8 else "target_phrase",
+                answer=exercise.correct_answer,
             )
+            word_scores = [PronunciationWordScore(**vars(w)) for w in local.words]
+        else:
+            try:
+                eval_result = await evaluate_pronunciation(
+                    cefr_level=lesson.cefr_level,
+                    target=exercise.correct_answer,
+                    transcription=transcription,
+                    target_language=target_language,
+                    native_language=current_user.native_language,
+                )
+                exercise.score = eval_result.score
+                exercise.feedback = eval_result.feedback
+            except LLMTimeoutError, LLMUnavailableError, LLMError:
+                # Fallback: normalised comparison stripping punctuation
+                norm_target = re.sub(r"[^\w\s]", "", exercise.correct_answer).strip().lower()
+                norm_answer = re.sub(r"[^\w\s]", "", transcription).strip().lower()
+                is_close = (
+                    norm_target == norm_answer
+                    or norm_target in norm_answer
+                    or norm_answer in norm_target
+                )
+                exercise.score = 1.0 if is_close else 0.0
+                exercise.feedback = (
+                    _answer_feedback(current_user.native_language, "good_pronunciation")
+                    if is_close
+                    else _answer_feedback(
+                        current_user.native_language,
+                        "target_phrase",
+                        answer=exercise.correct_answer,
+                    )
+                )
     elif exercise.exercise_type == "multiple_choice":
         user_ans = data.answer.strip().lower()
         correct_ans = exercise.correct_answer.strip().lower()
@@ -736,6 +783,7 @@ async def answer_exercise(
         feedback=exercise.feedback,
         correct_answer=exercise.correct_answer,
         corrections=exercise.corrections,
+        words=word_scores,
     )
 
 
