@@ -2396,5 +2396,18 @@
     "title": "Imagini în browser",
     "description": "Desenează o ilustrație pentru lecții și situații cu placa ta video. Prima utilizare descarcă câțiva GB de date ale modelului, care rămân în acest browser.",
     "toggle": "Afișează imaginile"
+  },
+  "pictureTalk": {
+    "entryTitle": "Conversație despre imagine",
+    "entryDescription": "Vorbește cu Lingu despre o imagine desenată pe dispozitivul tău, cu cuvinte din cardurile tale.",
+    "entryStart": "Începe conversația despre imagine",
+    "start": "Începe",
+    "nextPicture": "Imaginea următoare",
+    "nativeSpeedLabel": "Viteza în limba maternă",
+    "nativeSpeedNote": "Cât de repede spune Lingu sensul în limba ta maternă. Linia în limba maternă este omisă dacă nu este configurată nicio voce pentru limba ta.",
+    "unavailable": "Conversația despre imagine nu este disponibilă acum.",
+    "retry": "Încearcă din nou",
+    "back": "Înapoi",
+    "imageFailed": "Imaginea nu a putut fi desenată."
   }
 }

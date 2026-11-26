@@ -8,6 +8,8 @@
 'use client'
 
 import { BrowserImage } from '@/components/BrowserImage'
+import { PictureTalkImage } from '@/components/conversation/PictureTalkImage'
+import { pictureTalkAvailable, type PictureScene } from '@/lib/picture-talk'
 import { useCallback, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useTranslations } from 'next-intl'
@@ -47,6 +49,9 @@ interface LessonPractice {
   grammarPracticeSessionId?: string
   situationId?: SituationId
   situationStudyPlanId?: number
+  pictureSceneId?: number
+  pictureImagePrompt?: string
+  requestScene?: () => Promise<number | null>
   title?: string
   cefrLevel: string
   targetLanguage: string
@@ -59,6 +64,14 @@ export default function ConversationPage() {
   const lessonId = searchParams.get('lesson')
   const grammarPracticeId = searchParams.get('grammarPractice')
   const ownerKey = `${sessionVersion}:${userId}`
+  if (searchParams.has('picture')) {
+    return (
+      <PictureConversationPage
+        key={`${ownerKey}:picture:${searchParams.get('picture')}`}
+        planParam={searchParams.get('picture') ?? ''}
+      />
+    )
+  }
   if (searchParams.has('situation') || searchParams.has('plan')) {
     const source = parseSituationSource(searchParams)
     return (
@@ -84,6 +97,102 @@ export default function ConversationPage() {
     />
   ) : (
     <ConversationPageContent key={ownerKey} />
+  )
+}
+
+function PictureConversationPage({ planParam }: { planParam: string }) {
+  const t = useTranslations('pictureTalk')
+  const user = useAuthStore((s) => s.user)
+  const plan = useLanguageStore((s) => {
+    const id = Number(planParam)
+    return s.userLanguages.find((language) => language.plan?.id === id)
+  })
+  const activeCode = useLanguageStore((s) => s.activeLanguage?.code)
+  const [scene, setScene] = useState<PictureScene | null>(null)
+  const [failed, setFailed] = useState(false)
+  const [attempt, setAttempt] = useState(0)
+  const planId = Number(planParam)
+  const valid = /^\d+$/.test(planParam) && Number.isSafeInteger(planId)
+  const available = pictureTalkAvailable(user)
+
+  const fetchScene = useCallback(
+    async (signal?: AbortSignal): Promise<PictureScene> => {
+      const res = await apiFetch('/api/picture-talk/scenes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ study_plan_id: planId }),
+        signal,
+      })
+      if (!res.ok) throw new Error('Picture scene unavailable')
+      const data = await res.json()
+      if (
+        typeof data.id !== 'number' ||
+        typeof data.image_prompt !== 'string' ||
+        data.study_plan_id !== planId
+      )
+        throw new Error('Invalid picture scene')
+      return data as PictureScene
+    },
+    [planId]
+  )
+
+  useEffect(() => {
+    if (!valid || !available) return
+    const controller = new AbortController()
+    fetchScene(controller.signal)
+      .then((data) => {
+        if (!controller.signal.aborted) setScene(data)
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setFailed(true)
+      })
+    return () => controller.abort()
+  }, [valid, available, fetchScene, attempt])
+
+  const requestScene = useCallback(async () => {
+    const next = await fetchScene()
+    setScene(next)
+    return next.id
+  }, [fetchScene])
+
+  if (!valid || !available || failed)
+    return (
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 p-6">
+        <p role="alert" className="text-fl-muted-1 font-sans text-sm">
+          {t('unavailable')}
+        </p>
+        {valid && available && (
+          <button
+            type="button"
+            className="text-fl-accent font-sans text-sm underline"
+            onClick={() => {
+              setFailed(false)
+              setAttempt((value) => value + 1)
+            }}
+          >
+            {t('retry')}
+          </button>
+        )}
+        <Link
+          href="/situations"
+          className="text-fl-muted-1 font-sans text-sm underline"
+        >
+          {t('back')}
+        </Link>
+      </div>
+    )
+  if (!scene) return <ConversationLoading />
+  return (
+    <ConversationPageContent
+      practice={{
+        pictureSceneId: scene.id,
+        pictureImagePrompt: scene.image_prompt,
+        requestScene,
+        title: t('entryTitle'),
+        cefrLevel: plan?.plan?.cefr_level ?? '',
+        targetLanguage: plan?.target_language ?? activeCode ?? '',
+      }}
+    />
   )
 }
 
@@ -393,9 +502,11 @@ function ConversationPageContent({ practice }: { practice?: LessonPractice }) {
   const [initialContext, setInitialContext] = useState<
     ChatContextItem[] | undefined
   >(undefined)
-  const [autoStart, setAutoStart] = useState(!!practice)
+  const [autoStart, setAutoStart] = useState(
+    !!practice && practice.pictureSceneId === undefined
+  )
   const [cefrLevel, setCefrLevel] = useState<string | null>(
-    practice?.cefrLevel ?? null
+    practice?.cefrLevel || null
   )
   const [planReady, setPlanReady] = useState(!!practice)
   const [readyPlanKey, setReadyPlanKey] = useState<string>()
@@ -558,6 +669,13 @@ function ConversationPageContent({ practice }: { practice?: LessonPractice }) {
             grammarPracticeSessionId={practice?.grammarPracticeSessionId}
             situationId={practice?.situationId}
             situationStudyPlanId={practice?.situationStudyPlanId}
+            pictureSceneId={practice?.pictureSceneId}
+            pictureSlot={
+              practice?.pictureImagePrompt ? (
+                <PictureTalkImage prompt={practice.pictureImagePrompt} />
+              ) : undefined
+            }
+            onRequestScene={practice?.requestScene}
             lessonTitle={
               practice?.situationId
                 ? tSituations(`items.${practice.situationId}.title`)

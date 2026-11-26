@@ -17,6 +17,7 @@ from app.models.listening import ListeningAttempt, ListeningExercise
 from app.models.llm_usage import LLMUsage
 from app.models.memory import Memory
 from app.models.mistake import Mistake
+from app.models.picture_talk import PictureTalkScene
 from app.models.progress import Progress
 from app.models.progress_reward import ProgressReward
 from app.models.reading import ReadingAttempt, ReadingExercise
@@ -54,6 +55,7 @@ __all__ = [
     "LLMUsage",
     "Memory",
     "Mistake",
+    "PictureTalkScene",
     "Progress",
     "ProgressReward",
     "ReadingAttempt",

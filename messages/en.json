@@ -2396,5 +2396,18 @@
     "title": "Images in your browser",
     "description": "Draw an illustration on lessons and situations with your graphics card. The first use downloads several GB of model data, which stays in this browser.",
     "toggle": "Show images"
+  },
+  "pictureTalk": {
+    "entryTitle": "Picture talk",
+    "entryDescription": "Talk with Lingu about a picture drawn on your device, using words from your cards.",
+    "entryStart": "Start picture talk",
+    "start": "Start",
+    "nextPicture": "Next picture",
+    "nativeSpeedLabel": "Native-language speed",
+    "nativeSpeedNote": "How fast Lingu speaks the meaning in your native language. The native line is skipped when no native voice is configured for your language.",
+    "unavailable": "Picture talk is not available right now.",
+    "retry": "Try again",
+    "back": "Back",
+    "imageFailed": "The picture could not be drawn."
   }
 }

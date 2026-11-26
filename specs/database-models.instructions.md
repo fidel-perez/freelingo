@@ -95,6 +95,7 @@ Registration, authentication, and user preferences.
 - `conversation_inactivity_timeout` — integer seconds of silence before disconnect. Default comes from `DEFAULT_CONVERSATION_INACTIVITY_TIMEOUT`.
 - `conversation_speech_pause` — integer milliseconds of silence that end a spoken turn in voice conversation. Allowed values are `0`, `1000`, `2000`, and `3000`; `0` (the default) means the window is derived from the learner's CEFR level.
 - `correction_style`: string, `explicit` or `recast`; not null, server default `recast`. Global per user. It selects how the tutor corrects in text chat and voice conversation.
+- `native_speech_rate` — float, not null, default `1.8`, range 1.0-2.5 enforced by the API. Global per user. Playback speed of picture talk's native-language audio; see `picture-talk.instructions.md`.
 - `images_enabled` — boolean, not null, default `false`. Global per user. Turns on browser-drawn images; see `browser-images.instructions.md`.
 - `conversation_weekly_sessions` — integer weekly session limit. Default comes from `DEFAULT_CONVERSATION_WEEKLY_SESSIONS`; `0` means unlimited.
 - `conversation_daily_minutes` — integer daily voice limit in minutes. Default comes from `DEFAULT_CONVERSATION_DAILY_MINUTES`; `0` means unlimited.
@@ -246,6 +247,16 @@ Cached English image prompt per catalog situation, shared by all learners.
 - `situation_id` — string primary key, the stable catalog situation id.
 - `prompt` — text, the English image prompt.
 - `created_at` — datetime set automatically on creation.
+
+## PictureTalkScene (`picture_talk_scenes`)
+
+One generated picture-talk scene per row; see `picture-talk.instructions.md`.
+
+- `id` — integer primary key.
+- `study_plan_id` — integer FK to `study_plans`, `ON DELETE CASCADE`, indexed.
+- `image_prompt` — text, the English image prompt.
+- `words` — JSON list of study-language words.
+- `created_at` — datetime set on creation.
 
 ## Exercise (`exercises`)
 

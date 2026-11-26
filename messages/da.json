@@ -2396,5 +2396,18 @@
     "title": "Billeder i din browser",
     "description": "Tegn en illustration til lektioner og situationer med dit grafikkort. Første brug henter flere GB modeldata, som bliver i denne browser.",
     "toggle": "Vis billeder"
+  },
+  "pictureTalk": {
+    "entryTitle": "Billedsamtale",
+    "entryDescription": "Tal med Lingu om et billede, der tegnes på din enhed, med ord fra dine kort.",
+    "entryStart": "Start billedsamtale",
+    "start": "Start",
+    "nextPicture": "Næste billede",
+    "nativeSpeedLabel": "Hastighed på dit modersmål",
+    "nativeSpeedNote": "Hvor hurtigt Lingu siger betydningen på dit modersmål. Linjen på modersmålet springes over, hvis der ikke er sat en stemme op til dit sprog.",
+    "unavailable": "Billedsamtale er ikke tilgængelig lige nu.",
+    "retry": "Prøv igen",
+    "back": "Tilbage",
+    "imageFailed": "Billedet kunne ikke tegnes."
   }
 }

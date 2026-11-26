@@ -2396,5 +2396,18 @@
     "title": "Kuvat selaimessasi",
     "description": "Piirtää kuvituksen oppitunneille ja tilanteisiin näytönohjaimellasi. Ensimmäinen käyttökerta lataa useita Gt mallidataa, joka jää tähän selaimeen.",
     "toggle": "Näytä kuvat"
+  },
+  "pictureTalk": {
+    "entryTitle": "Kuvakeskustelu",
+    "entryDescription": "Keskustele Lingun kanssa laitteellasi piirretystä kuvasta käyttäen korttiesi sanoja.",
+    "entryStart": "Aloita kuvakeskustelu",
+    "start": "Aloita",
+    "nextPicture": "Seuraava kuva",
+    "nativeSpeedLabel": "Äidinkielen puhenopeus",
+    "nativeSpeedNote": "Kuinka nopeasti Lingu sanoo merkityksen äidinkielelläsi. Äidinkielinen rivi ohitetaan, jos kielellesi ei ole määritetty ääntä.",
+    "unavailable": "Kuvakeskustelu ei ole nyt käytettävissä.",
+    "retry": "Yritä uudelleen",
+    "back": "Takaisin",
+    "imageFailed": "Kuvaa ei voitu piirtää."
   }
 }

@@ -1,0 +1,359 @@
+import { Suspense } from 'react'
+import { lazy } from 'react'
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import type { useMicVAD } from '@ricky0123/vad-react'
+
+const mocks = vi.hoisted(() => ({
+  query: 'picture=7',
+  push: vi.fn(),
+  apiFetch: vi.fn(),
+  getUserMedia: vi.fn(),
+  vadOptions: {} as Parameters<typeof useMicVAD>[0],
+}))
+
+vi.mock('@ricky0123/vad-react', () => ({
+  useMicVAD: (options: Parameters<typeof useMicVAD>[0]) => {
+    mocks.vadOptions = options
+    return {
+      loading: false,
+      errored: false,
+      start: vi.fn().mockResolvedValue(undefined),
+      pause: vi.fn().mockResolvedValue(undefined),
+    }
+  },
+}))
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: mocks.push }),
+  useSearchParams: () => new URLSearchParams(mocks.query),
+}))
+vi.mock('next/dynamic', () => ({
+  default: (loader: Parameters<typeof lazy>[0]) => lazy(loader),
+}))
+vi.mock('next-intl', () => ({
+  useLocale: () => 'en',
+  useTranslations: () =>
+    Object.assign((key: string) => key, { raw: () => [], rich: () => '' }),
+}))
+vi.mock('@/lib/api', () => ({ apiFetch: mocks.apiFetch }))
+vi.mock('@/components/billing/MaintenanceBanner', () => ({
+  MaintenanceGate: ({ children }: { children: React.ReactNode }) => children,
+}))
+vi.mock('@/components/billing/FreemiumQuotaBanner', () => ({
+  FreemiumQuotaBanner: () => null,
+}))
+vi.mock('@/components/plan/NoPlanBanner', () => ({ default: () => null }))
+vi.mock('@/components/ui/page-loading', () => ({
+  PageLoading: () => <div>loading</div>,
+}))
+
+import ConversationPage from '@/app/(app)/conversation/page'
+import { SituationsCatalog } from '@/components/situations/SituationsCatalog'
+import { float32ToWav } from '@/lib/audio'
+import { mapUser } from '@/lib/mappers'
+import { useAuthStore } from '@/store/auth'
+import { useConfigStore } from '@/store/config'
+import { useFreemiumStore } from '@/store/freemium'
+import { useLanguageStore } from '@/store/language'
+import { getLanguageByCode } from '@/lib/target-languages'
+
+class MockWebSocket {
+  static OPEN = 1
+  static instances: MockWebSocket[] = []
+  readyState = 1
+  binaryType = ''
+  onopen: (() => void) | null = null
+  onmessage: ((event: { data: unknown }) => void) | null = null
+  onerror: (() => void) | null = null
+  onclose: ((event: { code: number; reason: string }) => void) | null = null
+  send = vi.fn()
+  close = vi.fn(() => {
+    this.readyState = 3
+  })
+
+  constructor() {
+    MockWebSocket.instances.push(this)
+  }
+}
+
+class FakeWorker {
+  onmessage: ((e: MessageEvent) => void) | null = null
+  onerror: (() => void) | null = null
+  terminate = vi.fn()
+  postMessage() {
+    queueMicrotask(() =>
+      this.onmessage?.({
+        data: { ok: true, blob: new Blob(['png'], { type: 'image/png' }) },
+      } as MessageEvent)
+    )
+  }
+}
+
+class FakeAudio {
+  static instances: HTMLAudioElement[] = []
+  constructor(src: string) {
+    const element = document.createElement('audio')
+    element.src = src
+    element.play = vi.fn().mockResolvedValue(undefined)
+    element.pause = vi.fn()
+    FakeAudio.instances.push(element)
+    return element
+  }
+}
+
+const plan = {
+  id: 7,
+  cefr_level: 'A2',
+  progress_day: 1,
+  total_days: 30,
+  completion_pct: 0,
+}
+const scene = {
+  id: 41,
+  study_plan_id: 7,
+  image_prompt: 'a red bicycle by a river',
+  words: ['a', 'b'],
+}
+
+function setUser(extra: Record<string, unknown>) {
+  useAuthStore.setState({
+    sessionVersion: 1,
+    accessToken: 'token',
+    user: mapUser({
+      id: 1,
+      username: 'learner',
+      role: 'user',
+      subscription_status: 'active',
+      ...extra,
+    }),
+  })
+}
+
+function stubBrowser(gpu: boolean) {
+  vi.stubGlobal('navigator', {
+    mediaDevices: { getUserMedia: mocks.getUserMedia },
+    ...(gpu ? { gpu: {} } : {}),
+  })
+}
+
+function renderPage() {
+  return render(
+    <Suspense fallback={<div>loading</div>}>
+      <ConversationPage />
+    </Suspense>
+  )
+}
+
+beforeEach(() => {
+  vi.clearAllMocks()
+  mocks.query = 'picture=7'
+  MockWebSocket.instances = []
+  FakeAudio.instances = []
+  mocks.getUserMedia.mockResolvedValue({
+    getTracks: () => [{ stop: vi.fn() }],
+  })
+  mocks.apiFetch.mockImplementation(async (url: string) =>
+    url === '/api/picture-talk/scenes'
+      ? { ok: true, json: async () => scene }
+      : { ok: true, json: async () => null }
+  )
+  useConfigStore.setState(
+    { ...useConfigStore.getInitialState(), loaded: true },
+    true
+  )
+  useFreemiumStore.setState(useFreemiumStore.getInitialState(), true)
+  useLanguageStore.setState({
+    activeLanguage: getLanguageByCode('fr-FR'),
+    userLanguages: [
+      {
+        target_language: 'fr-FR',
+        is_active: true,
+        plan,
+        progress: null,
+      },
+    ],
+    isSwitching: false,
+    needsRefresh: false,
+    invalidationVersion: 0,
+    fetchLanguages: vi.fn().mockResolvedValue(true),
+  })
+  setUser({
+    images_enabled: true,
+    image_model_base_url: 'https://weights.example/',
+    image_model_configured: true,
+    native_speech_rate: 2.2,
+  })
+  stubBrowser(true)
+  vi.stubGlobal('WebSocket', MockWebSocket)
+  vi.stubGlobal('Worker', FakeWorker)
+  vi.stubGlobal('Audio', FakeAudio)
+  vi.stubGlobal(
+    'AudioContext',
+    class {
+      state = 'running'
+      close = vi.fn().mockResolvedValue(undefined)
+    }
+  )
+  vi.stubGlobal('caches', {
+    open: async () => ({
+      match: async () => undefined,
+      put: async () => undefined,
+    }),
+  })
+  URL.createObjectURL = vi.fn(() => 'blob:fake')
+  URL.revokeObjectURL = vi.fn()
+  Element.prototype.scrollIntoView = vi.fn()
+})
+
+afterEach(() => {
+  cleanup()
+  vi.unstubAllGlobals()
+})
+
+describe('picture talk page', () => {
+  it('picture_talk_page_has_no_text_input', async () => {
+    const { container } = renderPage()
+    await screen.findByRole('button', { name: 'start' })
+    await waitFor(() =>
+      expect(
+        container.querySelector('[data-picture-talk-image]')
+      ).toHaveAttribute('data-image-state', 'done')
+    )
+    expect(container.querySelector('input')).toBeNull()
+    expect(container.querySelector('textarea')).toBeNull()
+    expect(container.querySelector('[contenteditable="true"]')).toBeNull()
+    expect(mocks.apiFetch).toHaveBeenCalledWith(
+      '/api/picture-talk/scenes',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ study_plan_id: 7 }),
+      })
+    )
+  })
+
+  it('plays the native line at the saved rate with the pitch kept', async () => {
+    renderPage()
+    fireEvent.click(await screen.findByRole('button', { name: 'start' }))
+    await waitFor(() => expect(MockWebSocket.instances).toHaveLength(1))
+    const ws = MockWebSocket.instances[0]
+    act(() => ws.onopen?.())
+    expect(JSON.parse(ws.send.mock.calls[0][0])).toMatchObject({
+      type: 'auth',
+      scene_id: 41,
+    })
+
+    const wav = float32ToWav(new Float32Array(4410).fill(0.2), 22050)
+    act(() => {
+      ws.onmessage?.({
+        data: JSON.stringify({ type: 'audio_voice', voice: 'study' }),
+      })
+      ws.onmessage?.({ data: wav.slice(0) })
+    })
+    await waitFor(() => expect(FakeAudio.instances).toHaveLength(1))
+    expect(FakeAudio.instances[0].playbackRate).toBe(1)
+    act(() => {
+      FakeAudio.instances[0].onended?.(new Event('ended'))
+    })
+
+    act(() => {
+      ws.onmessage?.({
+        data: JSON.stringify({ type: 'audio_voice', voice: 'native' }),
+      })
+      ws.onmessage?.({ data: wav.slice(0) })
+    })
+    await waitFor(() => expect(FakeAudio.instances).toHaveLength(2))
+    const native = FakeAudio.instances[1]
+    expect(native.preservesPitch).toBe(true)
+    expect(native.playbackRate).toBe(2.2)
+    expect(native.getAttribute('data-native-audio')).toBe('loading')
+  })
+
+  it('sends next_scene with a fresh scene id and no_answer after silence', async () => {
+    renderPage()
+    fireEvent.click(await screen.findByRole('button', { name: 'start' }))
+    await waitFor(() => expect(MockWebSocket.instances).toHaveLength(1))
+    const ws = MockWebSocket.instances[0]
+    act(() => ws.onopen?.())
+    ws.send.mockClear()
+
+    vi.useFakeTimers()
+    act(() => {
+      ws.onmessage?.({
+        data: JSON.stringify({
+          type: 'scene',
+          scene_id: 41,
+          silence_wait_s: 4,
+        }),
+      })
+      ws.onmessage?.({ data: JSON.stringify({ type: 'turn_complete' }) })
+    })
+    act(() => {
+      vi.advanceTimersByTime(4100)
+    })
+    vi.useRealTimers()
+    expect(ws.send).toHaveBeenCalledWith(JSON.stringify({ type: 'no_answer' }))
+
+    mocks.apiFetch.mockImplementation(async (url: string) =>
+      url === '/api/picture-talk/scenes'
+        ? { ok: true, json: async () => ({ ...scene, id: 42 }) }
+        : { ok: true, json: async () => null }
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'nextPicture' }))
+    await waitFor(() =>
+      expect(ws.send).toHaveBeenCalledWith(
+        JSON.stringify({ type: 'next_scene', scene_id: 42 })
+      )
+    )
+  })
+})
+
+describe('picture talk entry', () => {
+  async function renderCatalog() {
+    mocks.apiFetch.mockImplementation(
+      async () =>
+        new Response(
+          JSON.stringify({
+            study_plan_id: 7,
+            target_language: 'fr-FR',
+            cefr_level: 'A2',
+            situations: [{ id: 'hotel_problem', category: 'travel' }],
+          })
+        )
+    )
+    render(<SituationsCatalog />)
+    await screen.findByRole('button', { name: /hotel_problem/ })
+  }
+
+  it('is hidden when images are off', async () => {
+    setUser({
+      images_enabled: false,
+      image_model_base_url: 'https://weights.example/',
+    })
+    await renderCatalog()
+    expect(screen.queryByText('entryStart')).toBeNull()
+  })
+
+  it('is hidden without WebGPU or without a weights URL', async () => {
+    stubBrowser(false)
+    await renderCatalog()
+    expect(screen.queryByText('entryStart')).toBeNull()
+    cleanup()
+    stubBrowser(true)
+    setUser({ images_enabled: true })
+    await renderCatalog()
+    expect(screen.queryByText('entryStart')).toBeNull()
+  })
+
+  it('opens the picture route when images can draw', async () => {
+    await renderCatalog()
+    fireEvent.click(screen.getByText('entryStart'))
+    expect(mocks.push).toHaveBeenCalledWith('/conversation?picture=7')
+  })
+})

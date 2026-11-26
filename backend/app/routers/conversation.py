@@ -44,6 +44,8 @@ from app.services.language_helpers import lesson_practice_title, voice_session_t
 from app.services.lesson_voice_practice import load_lesson_voice_practice
 from app.services.llm_adapter import llm_adapter
 from app.services.memory_service import get_user_memories
+from app.services.native_tts import native_line_enabled, resolve_native_voice
+from app.services.picture_talk import PictureTalkState, load_picture_scene
 from app.services.quota_service import check_all_quotas
 from app.services.situations import load_situation_practice
 from app.services.subscription_service import is_subscribed
@@ -231,6 +233,8 @@ async def conversation_ws(
         grammar_practice_id_raw = auth_msg.get("grammar_practice_session_id")
         has_grammar_practice = "grammar_practice_session_id" in auth_msg
         has_situation_practice = "situation_id" in auth_msg or "situation_study_plan_id" in auth_msg
+        has_picture_practice = "scene_id" in auth_msg
+        scene_id_raw = auth_msg.get("scene_id")
         client_conversation_id_raw = auth_msg.get(
             "conversation_id"
         )  # optional: reserved for future API use
@@ -292,6 +296,21 @@ async def conversation_ws(
                 )
             if situation_practice is None:
                 await websocket.send_json({"type": "error", "code": "situation_unavailable"})
+                await websocket.close(code=1008)
+                return
+
+        # A picture scene is a server-owned source loaded for the owner of its plan.
+        picture_practice = None
+        if has_picture_practice:
+            if not (
+                has_lesson_practice
+                or has_grammar_practice
+                or has_situation_practice
+                or "voice_trial_token" in auth_msg
+            ):
+                picture_practice = await load_picture_scene(db, user_id, scene_id_raw)
+            if picture_practice is None:
+                await websocket.send_json({"type": "error", "code": "picture_unavailable"})
                 await websocket.close(code=1008)
                 return
 
@@ -416,6 +435,8 @@ async def conversation_ws(
             plan = grammar_practice.plan
         elif situation_practice:
             plan = situation_practice.plan
+        elif picture_practice:
+            plan = picture_practice.plan
         else:
             if target_language_from_client is not None:
                 target_language = target_language_from_client
@@ -473,9 +494,9 @@ async def conversation_ws(
 
     # Validate and sanitize optional chat context passed from the tutor chat
     valid_context: list[dict] | None = None
-    if not (lesson_practice or grammar_practice or situation_practice) and isinstance(
-        initial_context_raw, list
-    ):
+    if not (
+        lesson_practice or grammar_practice or situation_practice or picture_practice
+    ) and isinstance(initial_context_raw, list):
         sanitized = [
             {"role": m["role"], "content": m["content"]}
             for m in initial_context_raw[:20]
@@ -560,7 +581,12 @@ async def conversation_ws(
                 # Reuse path: if a caller explicitly passes a valid conversation_id
                 # that belongs to this user, append to that conversation.
                 if (
-                    not (lesson_practice or grammar_practice or situation_practice)
+                    not (
+                        lesson_practice
+                        or grammar_practice
+                        or situation_practice
+                        or picture_practice
+                    )
                     and isinstance(client_conversation_id_raw, (int, float))
                     and int(client_conversation_id_raw) > 0
                 ):
@@ -622,6 +648,18 @@ async def conversation_ws(
         except Exception:
             pass
 
+        picture_state = None
+        native_voice = None
+        if picture_practice:
+            picture_state = PictureTalkState(
+                scene_id=picture_practice.scene.id,
+                words=list(picture_practice.scene.words),
+                image_prompt=picture_practice.scene.image_prompt,
+                level=cefr_level,
+                native_lines=native_line_enabled(native_language, target_language),
+            )
+            native_voice = resolve_native_voice(native_language, target_language)
+
         pipeline = ConversationPipeline(
             llm=llm_adapter,
             tts=tts_service,
@@ -646,11 +684,18 @@ async def conversation_ws(
                 else (
                     grammar_practice.context
                     if grammar_practice
-                    else situation_practice.context if situation_practice else ""
+                    else (
+                        situation_practice.context
+                        if situation_practice
+                        else picture_practice.context if picture_practice else ""
+                    )
                 )
             ),
             user_agent=websocket.headers.get("user-agent", ""),
             correction_style=user_correction_style,
+            picture=picture_state,
+            native_tts=native_voice[0] if native_voice else None,
+            native_voice=native_voice[1] if native_voice else "",
         )
         pipeline._redis = redis
         pipeline._freemium_voice = freemium_ok

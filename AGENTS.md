@@ -50,6 +50,7 @@ Common documentation targets:
 - Public landing or static project-site content, navigation, and presentation: `public-site.instructions.md`.
 - Public indexing, metadata, canonical URLs, sitemap, robots, and structured data: `seo.instructions.md`.
 - Shared Listening/Reading generation: `services.instructions.md` owns the backend coordinator; `architecture-frontend.instructions.md` owns the shared client. Keep domain-specific content, audio, scoring, and history in `listening.instructions.md` and `reading.instructions.md`.
+- Picture talk scenes, native voice, hint ladder, or native speech rate: `picture-talk.instructions.md`, plus `speech-services.instructions.md` and `voice-conversation.instructions.md`.
 - Study plan, lesson, or progress changes: `study-plan.instructions.md`, `learning-resources.instructions.md`, `api-endpoints.instructions.md`.
 - New major domain: add a domain-oriented spec, then update `README.md`, this file, and `CHANGELOG.md` as applicable.
 
@@ -62,7 +63,7 @@ Use the narrowest relevant spec first:
 - Technical SEO and Search Console: `seo.instructions.md`.
 - Platform and languages: `platform.instructions.md`, `target-language.instructions.md`, `multi-language.instructions.md`, `add-target-language.instructions.md`, `add-ui-native-language.instructions.md`.
 - Learning: `study-plan.instructions.md`, `learning-resources.instructions.md`, `grammar-practice.instructions.md`, `situations.instructions.md`, `browser-images.instructions.md`, `listening.instructions.md`, `reading.instructions.md`, `games.instructions.md`.
-- Speech and AI: `speech-services.instructions.md`, `voice-conversation.instructions.md`, `memories.instructions.md`, `mistake-log.instructions.md`, `prompts.instructions.md`, `llm-error-handling.instructions.md`.
+- Speech and AI: `speech-services.instructions.md`, `voice-conversation.instructions.md`, `picture-talk.instructions.md`, `memories.instructions.md`, `mistake-log.instructions.md`, `prompts.instructions.md`, `llm-error-handling.instructions.md`.
 - Access and community: `subscriptions-freemium.instructions.md`, `feedback.instructions.md`, `reviews.instructions.md`, `whats-new.instructions.md`.
 - Contracts and operations: `database-models.instructions.md`, `services.instructions.md`, `api-endpoints.instructions.md`, `rate-limiting.instructions.md`, `docker.instructions.md`, `umami.instructions.md`.
 - Project maintenance: `dependency-updates.instructions.md`, `testing.instructions.md`, `readme.instructions.md`, `changelog.instructions.md`, `version.md`.

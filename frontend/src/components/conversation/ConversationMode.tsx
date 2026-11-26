@@ -1,6 +1,13 @@
 'use client'
 
-import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
+import {
+  useEffect,
+  useRef,
+  useState,
+  useCallback,
+  useMemo,
+  type ReactNode,
+} from 'react'
 import { useMicVAD } from '@ricky0123/vad-react'
 import { useRouter } from 'next/navigation'
 import { useLocale, useTranslations } from 'next-intl'
@@ -23,6 +30,14 @@ import { resolveConfiguredTtsVoice } from '@/lib/tts-voice'
 import { float32ToWav, createAudioQueue, type AudioQueue } from '@/lib/audio'
 import { getLogger, silentLogger } from '@/lib/logger'
 import { mapUser } from '@/lib/mappers'
+import {
+  createPictureAudioQueue,
+  type PictureAudioQueue,
+} from '@/lib/picture-audio-queue'
+import {
+  DEFAULT_NATIVE_SPEECH_RATE,
+  type PictureVoice,
+} from '@/lib/picture-talk'
 import {
   buildConversationWsUrl,
   type WsMessage,
@@ -237,6 +252,9 @@ export default function ConversationMode({
   grammarPracticeSessionId,
   situationId,
   situationStudyPlanId,
+  pictureSceneId,
+  pictureSlot,
+  onRequestScene,
   lessonTitle,
   voiceTrialToken,
   voiceTrialDurationSeconds,
@@ -254,6 +272,9 @@ export default function ConversationMode({
   grammarPracticeSessionId?: string
   situationId?: string
   situationStudyPlanId?: number
+  pictureSceneId?: number
+  pictureSlot?: ReactNode
+  onRequestScene?: () => Promise<number | null>
   lessonTitle?: string
   voiceTrialToken?: string
   voiceTrialDurationSeconds?: number
@@ -268,6 +289,7 @@ export default function ConversationMode({
   const tPractice = useTranslations('lessonPractice')
   const tGrammarPractice = useTranslations('grammarPractice')
   const tSituations = useTranslations('situations')
+  const tPicture = useTranslations('pictureTalk')
   const tMaintenance = useTranslations('maintenance')
   const locale = useLocale()
   const accessToken = useAuthStore((s) => s.accessToken)
@@ -370,6 +392,14 @@ export default function ConversationMode({
   const wsRef = useRef<WebSocket | null>(null)
   const audioCtxRef = useRef<AudioContext | null>(null)
   const audioQueueRef = useRef<AudioQueue | null>(null)
+  const pictureQueueRef = useRef<PictureAudioQueue | null>(null)
+  const pendingVoiceRef = useRef<PictureVoice>('study')
+  const silenceWaitRef = useRef<number | null>(null)
+  const turnCompleteRef = useRef(false)
+  const noAnswerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const nativeRateRef = useRef(DEFAULT_NATIVE_SPEECH_RATE)
+  const [nextBusy, setNextBusy] = useState(false)
+  const pictureMode = pictureSceneId !== undefined
   const transcriptIdRef = useRef(0)
   const transcriptEndRef = useRef<HTMLDivElement | null>(null)
   const activeTurnIdRef = useRef<number | null>(null)
@@ -404,6 +434,30 @@ export default function ConversationMode({
     quotaRefreshTimersRef.current = []
     quotaRequestRef.current?.abort()
   }, [])
+
+  const clearNoAnswer = useCallback(() => {
+    if (noAnswerTimerRef.current) clearTimeout(noAnswerTimerRef.current)
+    noAnswerTimerRef.current = null
+  }, [])
+
+  // Silence after the tutor's audio ends becomes one no_answer event.
+  const armNoAnswer = useCallback(() => {
+    clearNoAnswer()
+    const wait = silenceWaitRef.current
+    if (
+      wait === null ||
+      !turnCompleteRef.current ||
+      assistantSpeakingRef.current
+    )
+      return
+    noAnswerTimerRef.current = setTimeout(() => {
+      noAnswerTimerRef.current = null
+      const ws = wsRef.current
+      if (!turnCompleteRef.current || ws?.readyState !== WebSocket.OPEN) return
+      turnCompleteRef.current = false
+      ws.send(JSON.stringify({ type: 'no_answer' }))
+    }, wait * 1000)
+  }, [clearNoAnswer])
 
   const refreshQuota = useCallback(async () => {
     quotaRequestRef.current?.abort()
@@ -529,6 +583,7 @@ export default function ConversationMode({
     },
     onSpeechStart: () => {
       if (!isCurrentSession(sessionOwnerRef.current)) return
+      clearNoAnswer()
       convLogger.info('vad speech start', {
         assistantSpeaking: assistantSpeakingRef.current,
       })
@@ -541,6 +596,7 @@ export default function ConversationMode({
       speechStartedAtRef.current = null
       speechEnergyRef.current = { sumSquares: 0, samples: 0 }
       if (mountedRef.current) setUserSpeaking(false)
+      armNoAnswer()
     },
     onSpeechEnd: (audio: Float32Array) => {
       if (!isCurrentSession(sessionOwnerRef.current)) return
@@ -766,6 +822,12 @@ export default function ConversationMode({
         .catch(() => {})
       audioQueueRef.current?.cancel()
       audioQueueRef.current = null
+      pictureQueueRef.current?.dispose()
+      pictureQueueRef.current = null
+      clearNoAnswer()
+      turnCompleteRef.current = false
+      silenceWaitRef.current = null
+      pendingVoiceRef.current = 'study'
       if (audioCtxRef.current) {
         void audioCtxRef.current.close().catch(() => {})
         audioCtxRef.current = null
@@ -804,7 +866,13 @@ export default function ConversationMode({
         )
       }
     },
-    [dismissTooltip, cancelQuotaRefresh, refreshQuota, refreshFreemium]
+    [
+      dismissTooltip,
+      cancelQuotaRefresh,
+      refreshQuota,
+      refreshFreemium,
+      clearNoAnswer,
+    ]
   )
 
   // Auto-scroll transcript to bottom. Any transcript mutation moves the bubbles,
@@ -893,6 +961,7 @@ export default function ConversationMode({
         if (lessonId !== undefined) authPayload.lesson_id = lessonId
         if (grammarPracticeSessionId !== undefined)
           authPayload.grammar_practice_session_id = grammarPracticeSessionId
+        if (pictureSceneId !== undefined) authPayload.scene_id = pictureSceneId
         if (situationId !== undefined && situationStudyPlanId !== undefined) {
           authPayload.situation_id = situationId
           authPayload.situation_study_plan_id = situationStudyPlanId
@@ -921,6 +990,8 @@ export default function ConversationMode({
           bytes: arrayBuffer.byteLength,
         })
         lastAssistantAudioAtRef.current = performance.now()
+        clearNoAnswer()
+        turnCompleteRef.current = false
         assistantTurnActiveRef.current = true
         setAssistantThinking(true)
         if (!audioQueueRef.current) {
@@ -1015,10 +1086,23 @@ export default function ConversationMode({
             case 'turn_complete':
               assistantTurnActiveRef.current = false
               setAssistantThinking(false)
+              turnCompleteRef.current = true
+              armNoAnswer()
+              break
+
+            case 'scene':
+              silenceWaitRef.current = msg.silence_wait_s
+              turnCompleteRef.current = false
+              clearNoAnswer()
+              break
+
+            case 'audio_voice':
+              pendingVoiceRef.current = msg.voice
               break
 
             case 'barge_in':
               convLogger.warn('barge_in message from backend')
+              clearNoAnswer()
               audioQueueRef.current?.cancel()
               setAssistantThinking(false)
               setAssistantSpeaking(false)
@@ -1045,6 +1129,7 @@ export default function ConversationMode({
               setStatus('live')
               convLogger.debug('status update', { value: msg.value })
               if (msg.value === 'transcribing') {
+                clearNoAnswer()
                 // The backend resets inactivity when it receives this utterance.
                 setWarningDeadlines((previous) => ({
                   ...previous,
@@ -1185,12 +1270,15 @@ export default function ConversationMode({
       grammarPracticeSessionId,
       situationId,
       situationStudyPlanId,
+      pictureSceneId,
       voiceTrialToken,
       trialMode,
       refreshCurrentUser,
       finalizeSession,
       isCurrentSession,
       showMemoryToast,
+      clearNoAnswer,
+      armNoAnswer,
       refreshFreemium,
       reportAccessDenied,
       reportSituationAccessDenied,
@@ -1249,11 +1337,32 @@ export default function ConversationMode({
       convLogger.warn('audio context resume failed', { error })
     }
     if (!isCurrent()) return
-    audioQueueRef.current = createAudioQueue(ctx, () => {
+    const onQueueIdle = () => {
       if (!isCurrent()) return
       assistantSpeakingRef.current = false
       setAssistantSpeaking(false)
-    })
+      armNoAnswer()
+    }
+    if (pictureMode) {
+      nativeRateRef.current =
+        useAuthStore.getState().user?.native_speech_rate ??
+        DEFAULT_NATIVE_SPEECH_RATE
+      const picture = createPictureAudioQueue({
+        nativeRate: () => nativeRateRef.current,
+        onIdle: onQueueIdle,
+      })
+      pictureQueueRef.current = picture
+      audioQueueRef.current = {
+        enqueue: async (buffer) => {
+          const voice = pendingVoiceRef.current
+          pendingVoiceRef.current = 'study'
+          picture.enqueue(buffer, voice)
+        },
+        cancel: () => picture.cancel(),
+      }
+    } else {
+      audioQueueRef.current = createAudioQueue(ctx, onQueueIdle)
+    }
 
     cleanEndRef.current = false
     setStatus('connecting')
@@ -1406,6 +1515,28 @@ export default function ConversationMode({
     }
   }
 
+  async function handleNextPicture() {
+    if (!sessionActiveRef.current || nextBusy || !onRequestScene) return
+    setNextBusy(true)
+    try {
+      const sceneId = await onRequestScene()
+      const ws = wsRef.current
+      if (sceneId === null || !ws || ws.readyState !== WebSocket.OPEN) return
+      audioQueueRef.current?.cancel()
+      clearNoAnswer()
+      turnCompleteRef.current = false
+      assistantSpeakingRef.current = false
+      assistantTurnActiveRef.current = true
+      setAssistantSpeaking(false)
+      setAssistantThinking(true)
+      ws.send(JSON.stringify({ type: 'next_scene', scene_id: sceneId }))
+    } catch {
+      setErrorMsg(t('errorConnection'))
+    } finally {
+      if (mountedRef.current) setNextBusy(false)
+    }
+  }
+
   function handleStop() {
     const owner = sessionOwnerRef.current
     const completedPractice =
@@ -1461,7 +1592,7 @@ export default function ConversationMode({
             {t('subtitle')}
           </p>
           <h1 className="text-fl-fg font-mono text-2xl font-bold tracking-tight">
-            {situationId !== undefined ? (
+            {situationId !== undefined || pictureMode ? (
               <span lang={locale} className="font-sans">
                 {lessonTitle}
               </span>
@@ -1504,6 +1635,8 @@ export default function ConversationMode({
       )}
 
       <MemorySavedToast visible={memoryToast} announcementId={memoryToastId} />
+
+      {pictureSlot}
 
       {/* Transcript area */}
       <div className="mb-4 min-h-0 flex-1 space-y-3 overflow-y-auto px-2">
@@ -1583,6 +1716,7 @@ export default function ConversationMode({
         lessonId === undefined &&
         grammarPracticeSessionId === undefined &&
         situationId === undefined &&
+        !pictureMode &&
         !sessionActive &&
         (status === 'ready' || status === 'ended' || status === 'error') && (
           <div className="mb-4">
@@ -1658,6 +1792,16 @@ export default function ConversationMode({
             onStart={handleStart}
             onStop={handleStop}
           />
+        )}
+        {pictureMode && sessionActive && (
+          <button
+            type="button"
+            onClick={() => void handleNextPicture()}
+            disabled={nextBusy}
+            className="border-fl-border text-fl-muted-1 hover:border-fl-border-2 hover:text-fl-fg border px-4 py-2 font-mono text-xs tracking-widest uppercase transition-colors disabled:opacity-40"
+          >
+            {tPicture('nextPicture')}
+          </button>
         )}
       </div>
       <ReviewPrompt

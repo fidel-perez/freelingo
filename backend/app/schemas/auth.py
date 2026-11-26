@@ -173,6 +173,7 @@ class UserResponse(BaseModel):
     conversation_speech_pause: int = 0
     correction_style: str = "recast"
     images_enabled: bool = False
+    native_speech_rate: float = 1.8
     avatar: str | None = None
     bio: str | None = None
     learning_goals: list[str] | None = None
@@ -235,6 +236,7 @@ class UserUpdateRequest(BaseModel):
     conversation_speech_pause: int | None = None
     correction_style: Literal["explicit", "recast"] | None = None
     images_enabled: bool | None = None
+    native_speech_rate: float | None = Field(default=None, ge=1.0, le=2.5, allow_inf_nan=False)
     bio: str | None = Field(default=None, max_length=500)
     learning_goals: list[str] | None = None
 

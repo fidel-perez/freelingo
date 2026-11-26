@@ -2396,5 +2396,18 @@
     "title": "Slike u pregledniku",
     "description": "Crta ilustraciju za lekcije i situacije pomoću vaše grafičke kartice. Prvo korištenje preuzima nekoliko GB podataka modela, koji ostaju u ovom pregledniku.",
     "toggle": "Prikaži slike"
+  },
+  "pictureTalk": {
+    "entryTitle": "Razgovor o slici",
+    "entryDescription": "Razgovaraj s Lingom o slici nacrtanoj na tvom uređaju, s riječima s tvojih kartica.",
+    "entryStart": "Pokreni razgovor o slici",
+    "start": "Pokreni",
+    "nextPicture": "Sljedeća slika",
+    "nativeSpeedLabel": "Brzina na materinskom jeziku",
+    "nativeSpeedNote": "Koliko brzo Lingu izgovara značenje na tvom materinskom jeziku. Redak na materinskom jeziku preskače se ako za tvoj jezik nije postavljen glas.",
+    "unavailable": "Razgovor o slici trenutačno nije dostupan.",
+    "retry": "Pokušaj ponovno",
+    "back": "Natrag",
+    "imageFailed": "Slika se nije mogla nacrtati."
   }
 }

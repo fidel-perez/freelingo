@@ -2396,5 +2396,18 @@
     "title": "Obrazy w przeglądarce",
     "description": "Rysuje ilustrację do lekcji i sytuacji za pomocą karty graficznej. Pierwsze użycie pobiera kilka GB danych modelu, które zostają w tej przeglądarce.",
     "toggle": "Pokazuj obrazy"
+  },
+  "pictureTalk": {
+    "entryTitle": "Rozmowa o obrazku",
+    "entryDescription": "Porozmawiaj z Lingu o obrazku narysowanym na Twoim urządzeniu, ze słowami z Twoich fiszek.",
+    "entryStart": "Rozpocznij rozmowę o obrazku",
+    "start": "Start",
+    "nextPicture": "Następny obrazek",
+    "nativeSpeedLabel": "Tempo w języku ojczystym",
+    "nativeSpeedNote": "Jak szybko Lingu mówi znaczenie w Twoim języku ojczystym. Linia w języku ojczystym jest pomijana, gdy dla Twojego języka nie skonfigurowano głosu.",
+    "unavailable": "Rozmowa o obrazku jest teraz niedostępna.",
+    "retry": "Spróbuj ponownie",
+    "back": "Wstecz",
+    "imageFailed": "Nie udało się narysować obrazka."
   }
 }

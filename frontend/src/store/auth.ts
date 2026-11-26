@@ -42,6 +42,7 @@ export interface User {
   images_enabled?: boolean
   image_model_base_url?: string
   image_model_configured?: boolean
+  native_speech_rate?: number
 }
 
 /** Returns true when the user has an active/trialing subscription, or when Stripe is disabled (self-hosted). */

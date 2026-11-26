@@ -2396,5 +2396,18 @@
     "title": "Bilder i webbläsaren",
     "description": "Ritar en illustration till lektioner och situationer med ditt grafikkort. Första användningen laddar ner flera GB modelldata, som stannar i den här webbläsaren.",
     "toggle": "Visa bilder"
+  },
+  "pictureTalk": {
+    "entryTitle": "Bildsamtal",
+    "entryDescription": "Prata med Lingu om en bild som ritas på din enhet, med ord från dina kort.",
+    "entryStart": "Starta bildsamtal",
+    "start": "Starta",
+    "nextPicture": "Nästa bild",
+    "nativeSpeedLabel": "Hastighet på ditt modersmål",
+    "nativeSpeedNote": "Hur snabbt Lingu säger betydelsen på ditt modersmål. Raden på modersmålet hoppas över om ingen röst är inställd för ditt språk.",
+    "unavailable": "Bildsamtal är inte tillgängligt just nu.",
+    "retry": "Försök igen",
+    "back": "Tillbaka",
+    "imageFailed": "Bilden kunde inte ritas."
   }
 }

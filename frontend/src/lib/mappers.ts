@@ -57,6 +57,7 @@ export function mapUser(
       data.image_model_base_url ?? current?.image_model_base_url,
     image_model_configured:
       data.image_model_configured ?? current?.image_model_configured,
+    native_speech_rate: data.native_speech_rate ?? current?.native_speech_rate,
   }
 }
 

@@ -45,6 +45,10 @@ class Settings(BaseSettings):
     STT_PROVIDER: str = "local"  # local | openai | openai-compatible
     STT_BASE_URL: str = "http://whisper:9000"
     OPENAI_STT_MODEL: str = "whisper-1"
+    # Second TTS instance for the native-language line of picture talk; empty disables it.
+    NATIVE_TTS_PROVIDER: Literal["", "local", "openai", "gemini"] = ""
+    NATIVE_TTS_BASE_URL: str = ""
+    NATIVE_TTS_VOICES: str = ""  # comma list such as "es=<voice-id>,fr=<voice-id>"
     PRONUNCIATION_PROVIDER: str = "llm"  # llm | local
     PRONUNCIATION_BASE_URL: str = ""
     RATE_LIMIT_ENABLED: bool = True

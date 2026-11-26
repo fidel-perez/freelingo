@@ -2396,5 +2396,18 @@
     "title": "Tarayıcıda görseller",
     "description": "Dersler ve durumlar için ekran kartınızla bir çizim oluşturur. İlk kullanımda birkaç GB model verisi indirilir ve bu tarayıcıda kalır.",
     "toggle": "Görselleri göster"
+  },
+  "pictureTalk": {
+    "entryTitle": "Resimle konuşma",
+    "entryDescription": "Cihazında çizilen bir resim hakkında kartlarındaki kelimelerle Lingu ile konuş.",
+    "entryStart": "Resimle konuşmayı başlat",
+    "start": "Başlat",
+    "nextPicture": "Sonraki resim",
+    "nativeSpeedLabel": "Ana dil hızı",
+    "nativeSpeedNote": "Lingu'nun anlamı ana dilinde ne kadar hızlı söylediği. Dilin için ses ayarlanmamışsa ana dil satırı atlanır.",
+    "unavailable": "Resimle konuşma şu anda kullanılamıyor.",
+    "retry": "Tekrar dene",
+    "back": "Geri",
+    "imageFailed": "Resim çizilemedi."
   }
 }

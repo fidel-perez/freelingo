@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from sqlalchemy import Boolean, DateTime, Integer, String, Text, false
+from sqlalchemy import Boolean, DateTime, Float, Integer, String, Text, false
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.config import settings
@@ -49,6 +49,10 @@ class User(Base):
         nullable=False,
         default="recast",
         server_default="recast",
+    )
+    # Playback speed of the native-language audio in picture talk; the client applies it.
+    native_speech_rate: Mapped[float] = mapped_column(
+        Float, nullable=False, default=1.8, server_default="1.8"
     )
     images_enabled: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=False, server_default=false()

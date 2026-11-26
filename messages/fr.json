@@ -2396,5 +2396,18 @@
     "title": "Images dans votre navigateur",
     "description": "Dessine une illustration pour les leçons et les situations avec votre carte graphique. Le premier usage télécharge plusieurs Go de données de modèle, qui restent dans ce navigateur.",
     "toggle": "Afficher les images"
+  },
+  "pictureTalk": {
+    "entryTitle": "Conversation sur image",
+    "entryDescription": "Parlez avec Lingu d'une image dessinée sur votre appareil, avec des mots de vos cartes.",
+    "entryStart": "Commencer la conversation sur image",
+    "start": "Commencer",
+    "nextPicture": "Image suivante",
+    "nativeSpeedLabel": "Vitesse en langue maternelle",
+    "nativeSpeedNote": "Vitesse à laquelle Lingu dit le sens dans votre langue maternelle. La ligne en langue maternelle est ignorée si aucune voix maternelle n'est configurée pour votre langue.",
+    "unavailable": "La conversation sur image n'est pas disponible pour le moment.",
+    "retry": "Réessayer",
+    "back": "Retour",
+    "imageFailed": "L'image n'a pas pu être dessinée."
   }
 }

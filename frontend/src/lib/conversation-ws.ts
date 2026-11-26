@@ -88,6 +88,17 @@ export interface SituationStartedMessage {
   type: 'situation_started'
 }
 
+export interface SceneMessage {
+  type: 'scene'
+  scene_id: number
+  silence_wait_s: number
+}
+
+export interface AudioVoiceMessage {
+  type: 'audio_voice'
+  voice: 'study' | 'native'
+}
+
 export type WsMessage =
   | TranscriptMessage
   | BargeInMessage
@@ -98,6 +109,8 @@ export type WsMessage =
   | MemoryUpdatedMessage
   | TurnCompleteMessage
   | SituationStartedMessage
+  | SceneMessage
+  | AudioVoiceMessage
 
 // ─── Chat context passed from tutor chat to voice session ────────────────────
 

@@ -55,6 +55,10 @@ STT configuration:
 - `STT_MODEL` and `STT_ENGINE` configure the local Whisper container as `ASR_MODEL` and
   `ASR_ENGINE` in `docker-compose.yml`; they are not backend `Settings` fields.
 
+Picture talk adds `NATIVE_TTS_PROVIDER`, `NATIVE_TTS_BASE_URL`, and `NATIVE_TTS_VOICES` for a second TTS instance
+that speaks the learner's native-language line. Its contract, including the skip rule and WAV
+delivery, is `picture-talk.instructions.md`.
+
 `OPENAI_API_KEY` is required at startup when either selected speech provider is OpenAI.
 `GEMINI_API_KEY` is required only when `TTS_PROVIDER=gemini`. Local providers remain independent of
 cloud credentials. `TTS_PROVIDER` rejects values outside `local`, `openai`, and `gemini`.

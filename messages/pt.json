@@ -2396,5 +2396,18 @@
     "title": "Imagens no seu navegador",
     "description": "Desenha uma ilustração nas lições e situações com a sua placa gráfica. O primeiro uso baixa vários GB de dados do modelo, que ficam neste navegador.",
     "toggle": "Mostrar imagens"
+  },
+  "pictureTalk": {
+    "entryTitle": "Conversa com imagens",
+    "entryDescription": "Fale com o Lingu sobre uma imagem desenhada no seu dispositivo, com palavras dos seus cartões.",
+    "entryStart": "Iniciar conversa com imagens",
+    "start": "Iniciar",
+    "nextPicture": "Próxima imagem",
+    "nativeSpeedLabel": "Velocidade na língua materna",
+    "nativeSpeedNote": "Com que rapidez o Lingu diz o significado na sua língua materna. A linha na língua materna é ignorada se não houver voz configurada para a sua língua.",
+    "unavailable": "A conversa com imagens não está disponível agora.",
+    "retry": "Tentar novamente",
+    "back": "Voltar",
+    "imageFailed": "Não foi possível desenhar a imagem."
   }
 }

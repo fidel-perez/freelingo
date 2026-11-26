@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useLocale, useTranslations } from 'next-intl'
-import { MessageSquare, Search } from 'lucide-react'
+import { Image as ImageIcon, MessageSquare, Search } from 'lucide-react'
 import { useAuthStore, isSubscribed } from '@/store/auth'
 import { useLanguageStore } from '@/store/language'
 import { useConfigStore } from '@/store/config'
@@ -13,6 +13,7 @@ import { FreemiumQuotaBanner } from '@/components/billing/FreemiumQuotaBanner'
 import { PaywallBanner } from '@/components/billing/PaywallBanner'
 import NoPlanBanner from '@/components/plan/NoPlanBanner'
 import { PageLoading } from '@/components/ui/page-loading'
+import { pictureTalkAvailable } from '@/lib/picture-talk'
 import {
   fetchSituationCatalog,
   SituationContextError,
@@ -99,6 +100,7 @@ function Catalog({
   level: string | null
 }) {
   const t = useTranslations('situations')
+  const tPicture = useTranslations('pictureTalk')
   const locale = useLocale()
   const router = useRouter()
   const [catalog, setCatalog] = useState<SituationCatalog | null>(null)
@@ -199,6 +201,24 @@ function Catalog({
         <>
           <FreemiumQuotaBanner feature="situations" />
           {blockedFeature && <PaywallBanner feature={blockedFeature} compact />}
+          {pictureTalkAvailable(user) && (
+            <article className="border-fl-border bg-fl-surface flex min-w-0 flex-col gap-3 border p-5">
+              <ImageIcon className="text-fl-accent size-5" aria-hidden="true" />
+              <h2 className="text-fl-fg font-semibold">
+                {tPicture('entryTitle')}
+              </h2>
+              <p className="text-fl-muted-2 text-sm leading-relaxed">
+                {tPicture('entryDescription')}
+              </p>
+              <button
+                className={buttonClass}
+                disabled={!!blockedFeature}
+                onClick={() => router.push(`/conversation?picture=${planId}`)}
+              >
+                {tPicture('entryStart')}
+              </button>
+            </article>
+          )}
           <div className="flex flex-col gap-3 sm:flex-row">
             <label className="border-fl-border bg-fl-surface flex flex-1 items-center gap-2 border px-3">
               <Search

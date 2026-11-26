@@ -2396,5 +2396,18 @@
     "title": "Imágenes en tu navegador",
     "description": "Dibuja una ilustración en las lecciones y situaciones con tu tarjeta gráfica. El primer uso descarga varios GB de datos del modelo, que se quedan en este navegador.",
     "toggle": "Mostrar imágenes"
+  },
+  "pictureTalk": {
+    "entryTitle": "Charla con imágenes",
+    "entryDescription": "Habla con Lingu sobre una imagen dibujada en tu dispositivo, con palabras de tus tarjetas.",
+    "entryStart": "Empezar charla con imágenes",
+    "start": "Empezar",
+    "nextPicture": "Siguiente imagen",
+    "nativeSpeedLabel": "Velocidad en tu idioma nativo",
+    "nativeSpeedNote": "Con qué rapidez dice Lingu el significado en tu idioma nativo. La línea nativa se omite si no hay una voz nativa configurada para tu idioma.",
+    "unavailable": "La charla con imágenes no está disponible ahora.",
+    "retry": "Reintentar",
+    "back": "Volver",
+    "imageFailed": "No se pudo dibujar la imagen."
   }
 }

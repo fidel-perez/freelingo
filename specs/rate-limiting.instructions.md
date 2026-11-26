@@ -98,6 +98,10 @@ Rate limiting is independent of the global per-user daily game admission quota.
 These transport limits are independent of the global UTC daily grammar-generation admission quota,
 which is separate from Games. Saved reads and answers do not consume generation allowance.
 
+## Picture Talk
+
+- `POST /api/picture-talk/scenes`: `30/minute`. See `picture-talk.instructions.md`.
+
 ## Situations
 
 - `GET /api/situations`: `60/minute`.

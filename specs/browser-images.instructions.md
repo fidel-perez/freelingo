@@ -89,6 +89,7 @@ frontend. `docker.instructions.md` owns the propagation rules.
 
 ## Related specifications
 
+- `picture-talk.instructions.md`: voice sessions about a picture drawn by the same worker.
 - `situations.instructions.md`: situation pages that show an image.
 - `learning-resources.instructions.md`: lesson pages that show an image.
 - `architecture-frontend.instructions.md`: frontend structure and middleware.

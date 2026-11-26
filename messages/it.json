@@ -2396,5 +2396,18 @@
     "title": "Immagini nel browser",
     "description": "Disegna un'illustrazione per lezioni e situazioni con la tua scheda grafica. Il primo utilizzo scarica diversi GB di dati del modello, che restano in questo browser.",
     "toggle": "Mostra le immagini"
+  },
+  "pictureTalk": {
+    "entryTitle": "Conversazione sull'immagine",
+    "entryDescription": "Parla con Lingu di un'immagine disegnata sul tuo dispositivo, con parole delle tue schede.",
+    "entryStart": "Avvia la conversazione sull'immagine",
+    "start": "Avvia",
+    "nextPicture": "Immagine successiva",
+    "nativeSpeedLabel": "Velocità nella lingua madre",
+    "nativeSpeedNote": "Quanto velocemente Lingu dice il significato nella tua lingua madre. La riga in lingua madre viene saltata se per la tua lingua non è configurata alcuna voce.",
+    "unavailable": "La conversazione sull'immagine non è disponibile al momento.",
+    "retry": "Riprova",
+    "back": "Indietro",
+    "imageFailed": "Non è stato possibile disegnare l'immagine."
   }
 }

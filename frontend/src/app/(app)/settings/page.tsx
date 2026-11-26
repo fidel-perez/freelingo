@@ -22,6 +22,7 @@ import { ProfileSection } from '@/components/settings/ProfileSection'
 import { ConversationSection } from '@/components/settings/ConversationSection'
 import { CorrectionStyleSection } from '@/components/settings/CorrectionStyleSection'
 import { VoiceSection } from '@/components/settings/VoiceSection'
+import { NativeSpeechRateSection } from '@/components/settings/NativeSpeechRateSection'
 import { UsageLimitsSection } from '@/components/settings/UsageLimitsSection'
 import { AppearanceSection } from '@/components/settings/AppearanceSection'
 import { BrowserImagesSection } from '@/components/settings/BrowserImagesSection'
@@ -209,6 +210,9 @@ export default function SettingsPage() {
           </div>
           <div className="mt-4">
             <CorrectionStyleSection />
+          </div>
+          <div className="mt-4">
+            <NativeSpeechRateSection />
           </div>
         </SettingsPanel>
 

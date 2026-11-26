@@ -129,6 +129,10 @@ Zero blocks new free generation; Premium, active trials, and Stripe-disabled dep
 Its library, sessions, and global request/admission records use PostgreSQL. Generation uses in-process
 FastAPI background tasks with persisted deadlines, not an additional worker service or durable queue.
 
+Both Compose files forward `NATIVE_TTS_PROVIDER`, `NATIVE_TTS_BASE_URL`, and `NATIVE_TTS_VOICES`
+(default empty, which skips picture talk's native line), documented in `.env.example`. The native
+voice server is external. See `picture-talk.instructions.md`.
+
 Both Compose files forward `FREEMIUM_SITUATIONS_WEEKLY`, documented in `.env.example`.
 Situations uses the existing Redis weekly quota mechanism and voice services, without an additional
 service or volume. The allowance does not replace ordinary voice limits; access and accounting belong

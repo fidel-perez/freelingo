@@ -372,6 +372,8 @@ async def update_me(
         current_user.correction_style = data.correction_style
     if data.images_enabled is not None:
         current_user.images_enabled = data.images_enabled
+    if data.native_speech_rate is not None:
+        current_user.native_speech_rate = data.native_speech_rate
     if data.bio is not None:
         current_user.bio = data.bio if data.bio.strip() else None
     if data.learning_goals is not None:

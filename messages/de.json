@@ -2396,5 +2396,18 @@
     "title": "Bilder im Browser",
     "description": "Zeichnet mit deiner Grafikkarte eine Illustration zu Lektionen und Situationen. Bei der ersten Nutzung werden mehrere GB Modelldaten geladen, die in diesem Browser bleiben.",
     "toggle": "Bilder anzeigen"
+  },
+  "pictureTalk": {
+    "entryTitle": "Bildgespräch",
+    "entryDescription": "Sprich mit Lingu über ein Bild, das auf deinem Gerät gezeichnet wird, mit Wörtern aus deinen Karten.",
+    "entryStart": "Bildgespräch starten",
+    "start": "Start",
+    "nextPicture": "Nächstes Bild",
+    "nativeSpeedLabel": "Tempo in der Muttersprache",
+    "nativeSpeedNote": "Wie schnell Lingu die Bedeutung in deiner Muttersprache spricht. Die Zeile in der Muttersprache entfällt, wenn für deine Sprache keine Stimme eingerichtet ist.",
+    "unavailable": "Das Bildgespräch ist gerade nicht verfügbar.",
+    "retry": "Erneut versuchen",
+    "back": "Zurück",
+    "imageFailed": "Das Bild konnte nicht gezeichnet werden."
   }
 }

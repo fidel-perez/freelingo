@@ -503,6 +503,7 @@ transcript replacement invalidate pending selections and saves.
 
 - `speech-services.instructions.md` — TTS and STT adapters and HTTP gateways.
 - `subscriptions-freemium.instructions.md` — access and quota policy.
+- `picture-talk.instructions.md` — picture sessions, native line, `scene_id`, `next_scene`, `no_answer`, `audio_voice`.
 - `situations.instructions.md` — role-play catalog, context, and learning flow.
 - `multi-language.instructions.md` — active-language and plan provenance rules.
 - `memories.instructions.md` — global memory behavior and native tool contract.

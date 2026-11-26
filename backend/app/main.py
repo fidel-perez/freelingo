@@ -45,6 +45,7 @@ from app.routers import (
     listening,
     memories,
     phrasebook,
+    picture_talk,
     progress,
     reading,
     reviews,
@@ -183,6 +184,7 @@ app.include_router(freemium.router)
 app.include_router(games.router)
 app.include_router(grammar_practice.router)
 app.include_router(situations.router)
+app.include_router(picture_talk.router)
 app.include_router(memories.router)
 app.include_router(phrasebook.router)
 app.include_router(languages.router)

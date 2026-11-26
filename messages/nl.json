@@ -2396,5 +2396,18 @@
     "title": "Afbeeldingen in je browser",
     "description": "Tekent een illustratie bij lessen en situaties met je videokaart. Bij het eerste gebruik worden enkele GB modelgegevens gedownload, die in deze browser blijven.",
     "toggle": "Afbeeldingen tonen"
+  },
+  "pictureTalk": {
+    "entryTitle": "Praten over een plaatje",
+    "entryDescription": "Praat met Lingu over een plaatje dat op je apparaat wordt getekend, met woorden uit je kaarten.",
+    "entryStart": "Start praten over een plaatje",
+    "start": "Start",
+    "nextPicture": "Volgend plaatje",
+    "nativeSpeedLabel": "Snelheid in je moedertaal",
+    "nativeSpeedNote": "Hoe snel Lingu de betekenis in je moedertaal uitspreekt. De regel in je moedertaal wordt overgeslagen als er geen stem voor je taal is ingesteld.",
+    "unavailable": "Praten over een plaatje is nu niet beschikbaar.",
+    "retry": "Opnieuw proberen",
+    "back": "Terug",
+    "imageFailed": "Het plaatje kon niet worden getekend."
   }
 }
