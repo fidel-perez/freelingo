@@ -661,6 +661,7 @@ function ConversationPageContent({ practice }: { practice?: LessonPractice }) {
               </div>
             )}
           <ConversationMode
+            key={practice?.pictureSceneId === undefined ? 'voice' : 'picture'}
             initialContext={initialContext}
             autoStart={autoStart}
             cefrLevel={cefrLevel}

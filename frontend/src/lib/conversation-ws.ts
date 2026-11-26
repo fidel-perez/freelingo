@@ -91,7 +91,6 @@ export interface SituationStartedMessage {
 export interface SceneMessage {
   type: 'scene'
   scene_id: number
-  silence_wait_s: number
 }
 
 export interface AudioVoiceMessage {

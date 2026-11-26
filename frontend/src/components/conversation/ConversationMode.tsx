@@ -48,6 +48,10 @@ import StatusIndicator, { type ConvStatus } from './StatusIndicator'
 import TranscriptBubble from './TranscriptBubble'
 import SessionTimeoutBanner from './SessionTimeoutBanner'
 import MicButton from './MicButton'
+import {
+  ButtonTurnControls,
+  type ButtonTurnEvent,
+} from '@/components/button-turn-controls'
 import { WordTooltip, useWordSave } from '@/components/ui/WordTooltip'
 import { type QuotaStatus } from '@/types/api'
 import {
@@ -231,6 +235,26 @@ const MIN_UTTERANCE_RMS = 0.012
 const INTERRUPTION_MIN_UTTERANCE_MS = 1200
 const INTERRUPTION_RMS_THRESHOLD = 0.03
 const BARGE_IN_STARTUP_GUARD_MS = 900
+type MicVad = Pick<
+  ReturnType<typeof useMicVAD>,
+  'loading' | 'errored' | 'start' | 'pause'
+>
+const NO_VAD: MicVad = {
+  loading: false,
+  errored: false,
+  start: async () => {},
+  pause: async () => {},
+}
+
+/** Loads the VAD only when `enabled`; the flag never changes while the component is mounted. */
+function useOptionalMicVad(
+  enabled: boolean,
+  options: Parameters<typeof useMicVAD>[0]
+): MicVad {
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  return enabled ? useMicVAD(options) : NO_VAD
+}
+
 const VAD_MAX_RMS = 0.25
 const VAD_POSITIVE_SPEECH_THRESHOLD = 0.3
 // Allow the backend's 60-second provider budget plus transport/auth overhead.
@@ -394,9 +418,6 @@ export default function ConversationMode({
   const audioQueueRef = useRef<AudioQueue | null>(null)
   const pictureQueueRef = useRef<PictureAudioQueue | null>(null)
   const pendingVoiceRef = useRef<PictureVoice>('study')
-  const silenceWaitRef = useRef<number | null>(null)
-  const turnCompleteRef = useRef(false)
-  const noAnswerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const nativeRateRef = useRef(DEFAULT_NATIVE_SPEECH_RATE)
   const [nextBusy, setNextBusy] = useState(false)
   const pictureMode = pictureSceneId !== undefined
@@ -434,30 +455,6 @@ export default function ConversationMode({
     quotaRefreshTimersRef.current = []
     quotaRequestRef.current?.abort()
   }, [])
-
-  const clearNoAnswer = useCallback(() => {
-    if (noAnswerTimerRef.current) clearTimeout(noAnswerTimerRef.current)
-    noAnswerTimerRef.current = null
-  }, [])
-
-  // Silence after the tutor's audio ends becomes one no_answer event.
-  const armNoAnswer = useCallback(() => {
-    clearNoAnswer()
-    const wait = silenceWaitRef.current
-    if (
-      wait === null ||
-      !turnCompleteRef.current ||
-      assistantSpeakingRef.current
-    )
-      return
-    noAnswerTimerRef.current = setTimeout(() => {
-      noAnswerTimerRef.current = null
-      const ws = wsRef.current
-      if (!turnCompleteRef.current || ws?.readyState !== WebSocket.OPEN) return
-      turnCompleteRef.current = false
-      ws.send(JSON.stringify({ type: 'no_answer' }))
-    }, wait * 1000)
-  }, [clearNoAnswer])
 
   const refreshQuota = useCallback(async () => {
     quotaRequestRef.current?.abort()
@@ -553,7 +550,7 @@ export default function ConversationMode({
     if (!stream) throw new Error('No active microphone stream')
     return stream
   }, [])
-  const vad = useMicVAD({
+  const vad = useOptionalMicVad(!pictureMode, {
     baseAssetPath: '/vad/',
     onnxWASMBasePath: '/vad/',
     model: 'v5',
@@ -583,7 +580,6 @@ export default function ConversationMode({
     },
     onSpeechStart: () => {
       if (!isCurrentSession(sessionOwnerRef.current)) return
-      clearNoAnswer()
       convLogger.info('vad speech start', {
         assistantSpeaking: assistantSpeakingRef.current,
       })
@@ -596,7 +592,6 @@ export default function ConversationMode({
       speechStartedAtRef.current = null
       speechEnergyRef.current = { sumSquares: 0, samples: 0 }
       if (mountedRef.current) setUserSpeaking(false)
-      armNoAnswer()
     },
     onSpeechEnd: (audio: Float32Array) => {
       if (!isCurrentSession(sessionOwnerRef.current)) return
@@ -824,9 +819,6 @@ export default function ConversationMode({
       audioQueueRef.current = null
       pictureQueueRef.current?.dispose()
       pictureQueueRef.current = null
-      clearNoAnswer()
-      turnCompleteRef.current = false
-      silenceWaitRef.current = null
       pendingVoiceRef.current = 'study'
       if (audioCtxRef.current) {
         void audioCtxRef.current.close().catch(() => {})
@@ -866,13 +858,7 @@ export default function ConversationMode({
         )
       }
     },
-    [
-      dismissTooltip,
-      cancelQuotaRefresh,
-      refreshQuota,
-      refreshFreemium,
-      clearNoAnswer,
-    ]
+    [dismissTooltip, cancelQuotaRefresh, refreshQuota, refreshFreemium]
   )
 
   // Auto-scroll transcript to bottom. Any transcript mutation moves the bubbles,
@@ -990,8 +976,6 @@ export default function ConversationMode({
           bytes: arrayBuffer.byteLength,
         })
         lastAssistantAudioAtRef.current = performance.now()
-        clearNoAnswer()
-        turnCompleteRef.current = false
         assistantTurnActiveRef.current = true
         setAssistantThinking(true)
         if (!audioQueueRef.current) {
@@ -1086,14 +1070,9 @@ export default function ConversationMode({
             case 'turn_complete':
               assistantTurnActiveRef.current = false
               setAssistantThinking(false)
-              turnCompleteRef.current = true
-              armNoAnswer()
               break
 
             case 'scene':
-              silenceWaitRef.current = msg.silence_wait_s
-              turnCompleteRef.current = false
-              clearNoAnswer()
               break
 
             case 'audio_voice':
@@ -1102,7 +1081,6 @@ export default function ConversationMode({
 
             case 'barge_in':
               convLogger.warn('barge_in message from backend')
-              clearNoAnswer()
               audioQueueRef.current?.cancel()
               setAssistantThinking(false)
               setAssistantSpeaking(false)
@@ -1129,7 +1107,6 @@ export default function ConversationMode({
               setStatus('live')
               convLogger.debug('status update', { value: msg.value })
               if (msg.value === 'transcribing') {
-                clearNoAnswer()
                 // The backend resets inactivity when it receives this utterance.
                 setWarningDeadlines((previous) => ({
                   ...previous,
@@ -1277,8 +1254,6 @@ export default function ConversationMode({
       finalizeSession,
       isCurrentSession,
       showMemoryToast,
-      clearNoAnswer,
-      armNoAnswer,
       refreshFreemium,
       reportAccessDenied,
       reportSituationAccessDenied,
@@ -1341,7 +1316,6 @@ export default function ConversationMode({
       if (!isCurrent()) return
       assistantSpeakingRef.current = false
       setAssistantSpeaking(false)
-      armNoAnswer()
     }
     if (pictureMode) {
       nativeRateRef.current =
@@ -1388,33 +1362,36 @@ export default function ConversationMode({
     // Local models may need a cold start; provider health is not guaranteed.
     setStatus('warming')
 
-    // Start mic (requests permission if not already granted)
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          channelCount: 1,
-          echoCancellation: true,
-          autoGainControl: true,
-          noiseSuppression: true,
-        },
-      })
-      if (!isCurrent()) {
-        stream.getTracks().forEach((track) => track.stop())
+    // Picture talk opens no microphone and starts no VAD; the buttons drive each turn.
+    if (!pictureMode) {
+      // Start mic (requests permission if not already granted)
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            channelCount: 1,
+            echoCancellation: true,
+            autoGainControl: true,
+            noiseSuppression: true,
+          },
+        })
+        if (!isCurrent()) {
+          stream.getTracks().forEach((track) => track.stop())
+          return
+        }
+        micStreamRef.current = stream
+        const startVad = vadOperationRef.current.then(async () => {
+          if (!isCurrent()) return
+          await vad.start()
+        })
+        vadOperationRef.current = startVad.catch(() => {})
+        await startVad
+      } catch {
+        if (!isCurrent()) return
+        setErrorMsg(t('errorMic'))
+        setStatus('error')
+        finalizeSession()
         return
       }
-      micStreamRef.current = stream
-      const startVad = vadOperationRef.current.then(async () => {
-        if (!isCurrent()) return
-        await vad.start()
-      })
-      vadOperationRef.current = startVad.catch(() => {})
-      await startVad
-    } catch {
-      if (!isCurrent()) return
-      setErrorMsg(t('errorMic'))
-      setStatus('error')
-      finalizeSession()
-      return
     }
     if (!isCurrent()) return
 
@@ -1523,8 +1500,6 @@ export default function ConversationMode({
       const ws = wsRef.current
       if (sceneId === null || !ws || ws.readyState !== WebSocket.OPEN) return
       audioQueueRef.current?.cancel()
-      clearNoAnswer()
-      turnCompleteRef.current = false
       assistantSpeakingRef.current = false
       assistantTurnActiveRef.current = true
       setAssistantSpeaking(false)
@@ -1535,6 +1510,18 @@ export default function ConversationMode({
     } finally {
       if (mountedRef.current) setNextBusy(false)
     }
+  }
+
+  function handleButtonEvent(event: ButtonTurnEvent) {
+    const ws = wsRef.current
+    if (!sessionActiveRef.current || ws?.readyState !== WebSocket.OPEN) return
+    // A press cancels the queued study and native audio before the tutor answers.
+    audioQueueRef.current?.cancel()
+    assistantSpeakingRef.current = false
+    assistantTurnActiveRef.current = true
+    setAssistantSpeaking(false)
+    setAssistantThinking(true)
+    ws.send(JSON.stringify({ type: 'button_event', event }))
   }
 
   function handleStop() {
@@ -1792,6 +1779,9 @@ export default function ConversationMode({
             onStart={handleStart}
             onStop={handleStop}
           />
+        )}
+        {pictureMode && sessionActive && (
+          <ButtonTurnControls onEvent={handleButtonEvent} disabled={nextBusy} />
         )}
         {pictureMode && sessionActive && (
           <button

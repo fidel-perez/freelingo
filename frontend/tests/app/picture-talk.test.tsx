@@ -17,11 +17,13 @@ const mocks = vi.hoisted(() => ({
   apiFetch: vi.fn(),
   getUserMedia: vi.fn(),
   vadOptions: {} as Parameters<typeof useMicVAD>[0],
+  vadCalls: 0,
 }))
 
 vi.mock('@ricky0123/vad-react', () => ({
   useMicVAD: (options: Parameters<typeof useMicVAD>[0]) => {
     mocks.vadOptions = options
+    mocks.vadCalls++
     return {
       loading: false,
       errored: false,
@@ -153,6 +155,7 @@ function renderPage() {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  mocks.vadCalls = 0
   mocks.query = 'picture=7'
   MockWebSocket.instances = []
   FakeAudio.instances = []
@@ -275,7 +278,20 @@ describe('picture talk page', () => {
     expect(native.getAttribute('data-native-audio')).toBe('loading')
   })
 
-  it('sends next_scene with a fresh scene id and no_answer after silence', async () => {
+  it('picture_talk_page_opens_no_microphone', async () => {
+    renderPage()
+    fireEvent.click(await screen.findByRole('button', { name: 'start' }))
+    await waitFor(() => expect(MockWebSocket.instances).toHaveLength(1))
+    const ws = MockWebSocket.instances[0]
+    act(() => ws.onopen?.())
+
+    expect(mocks.getUserMedia).not.toHaveBeenCalled()
+    expect(mocks.vadCalls).toBe(0)
+    const sent = ws.send.mock.calls.map((call) => call[0])
+    expect(sent.filter((frame) => typeof frame !== 'string')).toEqual([])
+  })
+
+  it('sends a button event for each press and next_scene with a fresh scene id', async () => {
     renderPage()
     fireEvent.click(await screen.findByRole('button', { name: 'start' }))
     await waitFor(() => expect(MockWebSocket.instances).toHaveLength(1))
@@ -283,22 +299,14 @@ describe('picture talk page', () => {
     act(() => ws.onopen?.())
     ws.send.mockClear()
 
-    vi.useFakeTimers()
-    act(() => {
-      ws.onmessage?.({
-        data: JSON.stringify({
-          type: 'scene',
-          scene_id: 41,
-          silence_wait_s: 4,
-        }),
-      })
-      ws.onmessage?.({ data: JSON.stringify({ type: 'turn_complete' }) })
-    })
-    act(() => {
-      vi.advanceTimersByTime(4100)
-    })
-    vi.useRealTimers()
-    expect(ws.send).toHaveBeenCalledWith(JSON.stringify({ type: 'no_answer' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'tookTooLong' }))
+    expect(ws.send).toHaveBeenLastCalledWith(
+      JSON.stringify({ type: 'button_event', event: 'took_too_long' })
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'answered' }))
+    expect(ws.send).toHaveBeenLastCalledWith(
+      JSON.stringify({ type: 'button_event', event: 'answered' })
+    )
 
     mocks.apiFetch.mockImplementation(async (url: string) =>
       url === '/api/picture-talk/scenes'
