@@ -1,4 +1,4 @@
-"""Per-level data of picture talk: silence wait, hint rungs and question style."""
+"""Per-level data of picture talk: hint rungs and question style."""
 
 from dataclasses import dataclass
 
@@ -8,8 +8,13 @@ PICTURE_CONTEXT_SUFFIX = "\n</picture_scene>"
 # A tutor line spoken in the learner's native language starts with this marker, on its own line.
 NATIVE_LINE_MARKER = "NATIVE: "
 
-NO_ANSWER_TRIGGER = (
-    "[The learner stayed silent. Apply the hint rung given in the picture turn context.]"
+TOOK_TOO_LONG_TRIGGER = "[The learner pressed 'I took too long'. Apply the hint rung given in the picture turn context.]"
+ANSWERED_TRIGGER = "[The learner pressed 'I answered'. Follow the answered instruction in the picture turn context.]"
+ANSWERED_INSTRUCTION = (
+    "The learner said an answer aloud and pressed 'I answered'. You did not hear it. Do not ask "
+    "them to repeat it. Say the model answer to your open question in the study language, give its "
+    "meaning on one marked native-language line, then ask one new, easy question about the picture "
+    "with its marked native-language line."
 )
 NEXT_SCENE_TRIGGER = (
     "[A new picture is now shown. Open with one or two short sentences about it, following "
@@ -34,8 +39,9 @@ RUNG_INSTRUCTIONS = {
         "Say only the first word of the answer and invite the learner to finish the sentence."
     ),
     RUNG_MODEL_ANSWER: (
-        "Give the model answer. Reply with exactly two lines: first the full answer in the "
-        "study language, then its meaning on one marked native-language line. Add nothing else."
+        "Give the model answer. Start with exactly two lines: first the full answer in the "
+        "study language, then its meaning on one marked native-language line. Then ask one new, "
+        "easy question about the picture, with its marked native-language line."
     ),
 }
 
@@ -52,22 +58,21 @@ OPEN_GUIDANCE = (
 
 @dataclass(frozen=True)
 class PictureTalkLevel:
-    silence_wait_s: int
     rungs: tuple[str, ...]
     guidance: str
 
 
 LEVELS: dict[str, PictureTalkLevel] = {
     "A1": PictureTalkLevel(
-        14, (RUNG_REPHRASE, RUNG_TWO_OPTIONS, RUNG_FIRST_WORD, RUNG_MODEL_ANSWER), NARRATE_GUIDANCE
+        (RUNG_REPHRASE, RUNG_TWO_OPTIONS, RUNG_FIRST_WORD, RUNG_MODEL_ANSWER), NARRATE_GUIDANCE
     ),
     "A2": PictureTalkLevel(
-        12, (RUNG_REPHRASE, RUNG_TWO_OPTIONS, RUNG_FIRST_WORD, RUNG_MODEL_ANSWER), OPEN_GUIDANCE
+        (RUNG_REPHRASE, RUNG_TWO_OPTIONS, RUNG_FIRST_WORD, RUNG_MODEL_ANSWER), OPEN_GUIDANCE
     ),
-    "B1": PictureTalkLevel(10, (RUNG_REPHRASE, RUNG_FIRST_WORD, RUNG_MODEL_ANSWER), OPEN_GUIDANCE),
-    "B2": PictureTalkLevel(8, (RUNG_REPHRASE, RUNG_MODEL_ANSWER), OPEN_GUIDANCE),
-    "C1": PictureTalkLevel(7, (RUNG_REPHRASE, RUNG_MODEL_ANSWER), OPEN_GUIDANCE),
-    "C2": PictureTalkLevel(6, (RUNG_MODEL_ANSWER,), OPEN_GUIDANCE),
+    "B1": PictureTalkLevel((RUNG_REPHRASE, RUNG_FIRST_WORD, RUNG_MODEL_ANSWER), OPEN_GUIDANCE),
+    "B2": PictureTalkLevel((RUNG_REPHRASE, RUNG_MODEL_ANSWER), OPEN_GUIDANCE),
+    "C1": PictureTalkLevel((RUNG_REPHRASE, RUNG_MODEL_ANSWER), OPEN_GUIDANCE),
+    "C2": PictureTalkLevel((RUNG_MODEL_ANSWER,), OPEN_GUIDANCE),
 }
 DEFAULT_LEVEL = "A2"
 

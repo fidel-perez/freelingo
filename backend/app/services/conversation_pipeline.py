@@ -11,10 +11,11 @@ from typing import TYPE_CHECKING
 from app.core.app_logger import get_logger
 from app.core.config import settings
 from app.data.picture_talk_levels import (
+    ANSWERED_TRIGGER,
     NATIVE_LINE_MARKER,
     NEXT_SCENE_TRIGGER,
-    NO_ANSWER_TRIGGER,
     RUNG_MODEL_ANSWER,
+    TOOK_TOO_LONG_TRIGGER,
 )
 from app.models.user import User
 from app.services.language_helpers import (
@@ -46,13 +47,10 @@ from app.services.mistake_service import (
 )
 from app.services.picture_talk import (
     PictureTalkState,
-    classify_reply,
     display_text,
     load_picture_scene,
     native_line_text,
-    score_repeat,
     split_picture_text,
-    weak_words_of_answer,
 )
 from app.services.prompts.common import get_language_prompt_overlay
 from app.services.prompts.tutor import CONVERSATION_START_PROMPT, build_conversation_system_prompt
@@ -726,11 +724,7 @@ class ConversationPipeline:
         if picture is not None:
             await self._send_json(
                 ws,
-                {
-                    "type": "scene",
-                    "scene_id": picture.scene_id,
-                    "silence_wait_s": picture.silence_wait_s,
-                },
+                {"type": "scene", "scene_id": picture.scene_id},
             )
 
     def _voice_llm(self) -> LLMAdapter:
@@ -752,7 +746,7 @@ class ConversationPipeline:
         messages = [
             {
                 "role": "system",
-                "content": self._picture_system_prompt(picture.turn_context(weak_words=[])),
+                "content": self._picture_system_prompt(picture.turn_context()),
             },
             *self.history[-CONVERSATION_HISTORY_MESSAGE_LIMIT:],
             {"role": "user", "content": trigger},
@@ -796,73 +790,21 @@ class ConversationPipeline:
                 await streamer.cancel()
             self._reset_inactivity()
 
-    async def _picture_prepare(
-        self, ws: WebSocket, turn_id: int, audio_bytes: bytes, user_text: str
-    ) -> str:
-        """Step the ladder or score the learner's audio; return the tutor's turn context."""
-        picture = self._picture
-        if picture is None:
-            return ""
-        weak_words: list[str] = []
-        repeat: tuple[str, float] | None = None
-        if picture.model_answer:
-            answer = picture.model_answer
-            picture.model_answer = None
-            picture.model_meaning = None
-            score = await score_repeat(
-                audio_bytes,
-                user_text,
-                model_answer=answer,
-                target_language=self._target_language,
-                native_language=self._native_language,
-                cefr_level=picture.level,
-            )
-            repeat = (answer, score)
-            picture.reset_ladder()
-            await self._send_json(
-                ws,
-                {
-                    "type": "repeat_score",
-                    "score": score,
-                    "model_answer": answer,
-                    "turn_id": turn_id,
-                },
-            )
-        else:
-            kind = "answer"
-            if picture.open_question:
-                kind = await classify_reply(
-                    self.llm,
-                    text=user_text,
-                    native_language=self._native_language,
-                    target_language=self._target_language,
-                )
-            if kind == "answer":
-                picture.reset_ladder()
-                weak_words = await weak_words_of_answer(
-                    audio_bytes, user_text, target_language=self._target_language
-                )
-            else:
-                picture.step()
-        return picture.turn_context(weak_words=weak_words, repeat=repeat)
-
     def _picture_after_turn(self, reply: str) -> None:
-        """Mark the question open and keep the model answer a ladder turn just gave."""
+        """Mark the question open; a ladder that ended in a model answer logs one mistake."""
         picture = self._picture
         if picture is None:
             return
         picture.open_question = True
         if picture.active_rung == RUNG_MODEL_ANSWER:
             study, native = split_picture_text(reply)
-            if study:
-                picture.model_answer = study[0]
-                picture.model_meaning = native[0] if native else None
-                if picture.model_meaning:
-                    self._pending_saves.append(
-                        asyncio.create_task(self._log_model_answer(study[0], native[0]))
-                    )
+            if study and native:
+                self._pending_saves.append(
+                    asyncio.create_task(self._log_model_answer(study[0], native[0]))
+                )
+            picture.reset_ladder()
         picture.active_rung = None
-        picture.move_on = False
+        picture.answered = False
 
     async def _log_model_answer(self, model_answer: str, meaning: str) -> None:
         """One mistake per model answer: the native meaning on the front, the answer behind."""
@@ -873,16 +815,6 @@ class ConversationPipeline:
                 await log_mistakes(db, self._study_plan_id, [(meaning, model_answer, "")], "voice")
         except Exception:
             logger.exception("[pipeline] Failed to log the model answer as a mistake")
-
-    async def handle_no_answer(self, ws: WebSocket) -> None:
-        picture = self._picture
-        if picture is None or not picture.open_question:
-            return
-        if self.current_task and not self.current_task.done():
-            return
-        self._reset_inactivity()
-        picture.step()
-        self.current_task = asyncio.create_task(self._picture_tutor_turn(ws, NO_ANSWER_TRIGGER))
 
     async def handle_next_scene(self, ws: WebSocket, scene_id: object) -> None:
         picture = self._picture
@@ -916,7 +848,17 @@ class ConversationPipeline:
         if self.current_task and not self.current_task.done():
             await self.cancel_current()
             await self._send_json(ws, {"type": "barge_in"})
-        self.current_task = asyncio.create_task(self._button_turn(ws, event))
+        picture = self._picture
+        if picture is None:
+            self.current_task = asyncio.create_task(self._button_turn(ws, event))
+            return
+        if event == "took_too_long":
+            picture.step()
+            trigger = TOOK_TOO_LONG_TRIGGER
+        else:
+            picture.answer()
+            trigger = ANSWERED_TRIGGER
+        self.current_task = asyncio.create_task(self._picture_tutor_turn(ws, trigger))
 
     async def _button_turn(self, ws: WebSocket, event: str) -> None:
         """Answer a learner event: stream the LLM and speak each finished sentence."""
@@ -1077,9 +1019,6 @@ class ConversationPipeline:
                             break
                         logger.debug("[pipeline] Received unknown client_event: %s", msg)
                         continue
-                    if msg.get("type") == "no_answer":
-                        await self.handle_no_answer(ws)
-                        continue
                     if msg.get("type") == "button_event":
                         await self.handle_button_event(ws, msg.get("event"))
                         continue
@@ -1108,6 +1047,8 @@ class ConversationPipeline:
 
     async def handle_audio(self, audio_bytes: bytes, ws: WebSocket) -> None:
         self._reset_inactivity()
+        if self._picture is not None:
+            return  # Picture talk hears no learner audio; the buttons drive each turn.
         logger.debug(
             "[pipeline] Audio chunk received (%d bytes); current_task=%s",
             len(audio_bytes),
@@ -1203,8 +1144,8 @@ class ConversationPipeline:
         # (alongside the assistant reply) so no orphan rows are written on
         # LLM failures or barge-in cancellations.
         await self._refresh_memory_prompt()
-        turn_context = await self._picture_prepare(ws, turn_id, audio_bytes, user_text)
-        system_prompt = self.system_prompt + turn_context
+        turn_context = ""
+        system_prompt = self.system_prompt
         messages = [{"role": "system", "content": system_prompt}] + self.history[
             -CONVERSATION_HISTORY_MESSAGE_LIMIT:
         ]
@@ -1256,8 +1197,7 @@ class ConversationPipeline:
                     "tool_executor": execute_memory_tool,
                     "fallback_messages": fallback_messages,
                 }
-            llm = self._voice_llm() if self._picture is not None else self.llm
-            llm_stream = await llm.chat(messages, stream=True, **memory_kwargs)
+            llm_stream = await self.llm.chat(messages, stream=True, **memory_kwargs)
             streamer = _SpeechStreamer(self, ws, turn_id)
             try:
                 async for chunk in llm_stream:
@@ -1373,13 +1313,11 @@ class ConversationPipeline:
                 self._pending_saves.append(asyncio.create_task(self._save_usage(llm_stream)))
 
         self.history.append({"role": "assistant", "content": clean_full_response})
-        self._picture_after_turn(clean_full_response)
         # Persist both sides of the turn together — only reached on success.
-        saved_text = (
-            display_text(clean_full_response) if self._picture is not None else clean_full_response
-        )
         self._pending_saves.append(
-            asyncio.create_task(self._save_turn(user_text, saved_text, completed_at=completed_at))
+            asyncio.create_task(
+                self._save_turn(user_text, clean_full_response, completed_at=completed_at)
+            )
         )
 
         logger.info("[pipeline] Turn complete — assistant: %r", clean_full_response[:120])
