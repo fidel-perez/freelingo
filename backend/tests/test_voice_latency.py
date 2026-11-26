@@ -17,6 +17,7 @@ from app.services.conversation_pipeline import (
     STREAM_TERMINALS,
     ConversationPipeline,
     SentenceSplitter,
+    _SpeechStreamer,
     sentence_terminals,
 )
 from app.services.stt_service import OpenAICompatibleSTTService
@@ -120,6 +121,32 @@ async def test_audio_keeps_sentence_order() -> None:
         b"Quick three.",
     ]
     assert ws.types().count("transcript") == 2  # user text, then one assistant transcript
+
+
+async def test_reset_drops_finished_audio_of_discarded_stream() -> None:
+    pipeline = _pipeline()
+    gate = asyncio.Event()
+    a2_done = asyncio.Event()
+
+    async def synth(text, voice, lang):
+        if text == "A1.":
+            await gate.wait()
+        if text == "A2.":
+            a2_done.set()
+        return text.encode()
+
+    pipeline.tts.synthesize = synth
+    ws = FakeWS()
+    streamer = _SpeechStreamer(pipeline, ws, 1)
+
+    streamer.push("A1. A2. ")
+    await asyncio.wait_for(a2_done.wait(), timeout=2)
+    await asyncio.sleep(0)
+    streamer.reset()
+    streamer.push("B1. ")
+    await streamer.finish("B1.")
+
+    assert [data for kind, data in ws.sent if kind == "bytes"] == [b"B1."]
 
 
 def test_sentence_split_without_full_stop() -> None:

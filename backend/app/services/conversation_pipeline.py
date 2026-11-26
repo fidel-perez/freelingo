@@ -155,8 +155,9 @@ class _SpeechStreamer:
         self._splitter = SentenceSplitter(
             STREAM_TERMINALS + sentence_terminals(pipeline._target_language)
         )
-        self._queue: asyncio.Queue[asyncio.Task | None] = asyncio.Queue()
+        self._queue: asyncio.Queue[tuple[int, asyncio.Task] | None] = asyncio.Queue()
         self._pending: list[asyncio.Task] = []
+        self._generation = 0
         self._slots = asyncio.Semaphore(TTS_MAX_PARALLEL)
         self._sender = asyncio.create_task(self._send_in_order())
         self._final_text: str | None = None
@@ -173,8 +174,10 @@ class _SpeechStreamer:
     def reset(self) -> None:
         """Drop the text and the unsent audio of a stream the LLM restarted."""
         self._splitter.reset()
+        self._generation += 1
         for task in self._pending:
             task.cancel()
+        self._pending.clear()
 
     def _enqueue(self, sentence: str) -> None:
         if self.aborted:
@@ -183,16 +186,17 @@ class _SpeechStreamer:
             self.first_enqueue_t0 = time.perf_counter()
         task = asyncio.create_task(self._synthesize(sentence))
         self._pending.append(task)
-        self._queue.put_nowait(task)
+        self._queue.put_nowait((self._generation, task))
 
     async def _synthesize(self, sentence: str) -> bytes:
         async with self._slots:
             return await self._pipeline._synthesize_chunk(sentence)
 
     async def _send_in_order(self) -> None:
-        while (task := await self._queue.get()) is not None:
+        while (item := await self._queue.get()) is not None:
+            generation, task = item
             await asyncio.wait({task})
-            if self.aborted or task.cancelled():
+            if self.aborted or generation != self._generation or task.cancelled():
                 continue
             exc = task.exception()
             if exc is not None:
