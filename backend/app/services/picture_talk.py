@@ -14,12 +14,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.app_logger import get_logger
 from app.core.config import settings
 from app.data.picture_talk_levels import (
-    ANSWERED_INSTRUCTION,
     NATIVE_LINE_MARKER,
     PICTURE_CONTEXT_PREFIX,
     PICTURE_CONTEXT_SUFFIX,
-    RUNG_INSTRUCTIONS,
+    answered_instruction,
     level_data,
+    rung_instruction,
 )
 from app.models.flashcard import Flashcard
 from app.models.picture_talk import PictureTalkScene
@@ -224,10 +224,10 @@ class PictureTalkState:
         if self.active_rung:
             parts.append(
                 f"Hint ladder, rung {self.rung} ({self.active_rung}): "
-                + RUNG_INSTRUCTIONS[self.active_rung]
+                + rung_instruction(self.active_rung, self.native_lines)
             )
         elif self.answered:
-            parts.append(ANSWERED_INSTRUCTION)
+            parts.append(answered_instruction(self.native_lines))
         if not parts:
             return ""
         return "\n<picture_turn>\n" + "\n".join(f"- {p}" for p in parts) + "\n</picture_turn>\n"

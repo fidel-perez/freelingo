@@ -154,6 +154,7 @@ apply.
 - When the ladder ends at a model answer after `took_too_long` presses, the pipeline logs one mistake
   through `log_mistakes` with source `voice`: the native meaning as the front and the model answer as
   the back. It becomes an SM-2 card, and mistake cards come first when a later scene picks its words.
+- When the learner gets no native line, the pipeline logs the study line as both the front and the back.
 - An `answered` press logs no mistake.
 
 ## Persistence

@@ -798,9 +798,11 @@ class ConversationPipeline:
         picture.open_question = True
         if picture.active_rung == RUNG_MODEL_ANSWER:
             study, native = split_picture_text(reply)
-            if study and native:
+            if study:
+                # With no native line, the study line is the front and the back.
+                front = native[0] if native else study[0]
                 self._pending_saves.append(
-                    asyncio.create_task(self._log_model_answer(study[0], native[0]))
+                    asyncio.create_task(self._log_model_answer(study[0], front))
                 )
             picture.reset_ladder()
         picture.active_rung = None
@@ -812,7 +814,13 @@ class ConversationPipeline:
             return
         try:
             async with db_session() as db:
-                await log_mistakes(db, self._study_plan_id, [(meaning, model_answer, "")], "voice")
+                await log_mistakes(
+                    db,
+                    self._study_plan_id,
+                    [(meaning, model_answer, "")],
+                    "voice",
+                    keep_identical=True,
+                )
         except Exception:
             logger.exception("[pipeline] Failed to log the model answer as a mistake")
 

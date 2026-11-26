@@ -10,12 +10,20 @@ NATIVE_LINE_MARKER = "NATIVE: "
 
 TOOK_TOO_LONG_TRIGGER = "[The learner pressed 'I took too long'. Apply the hint rung given in the picture turn context.]"
 ANSWERED_TRIGGER = "[The learner pressed 'I answered'. Follow the answered instruction in the picture turn context.]"
-ANSWERED_INSTRUCTION = (
-    "The learner said an answer aloud and pressed 'I answered'. You did not hear it. Do not ask "
-    "them to repeat it. Say the model answer to your open question in the study language, give its "
-    "meaning on one marked native-language line, then ask one new, easy question about the picture "
-    "with its marked native-language line."
-)
+
+
+def answered_instruction(native_lines: bool) -> str:
+    meaning = " on one marked native-language line" if native_lines else ""
+    question_line = " with its marked native-language line" if native_lines else ""
+    return (
+        "The learner said an answer aloud and pressed 'I answered'. You did not hear it. Do not ask "
+        "them to repeat it. Say the model answer to your open question in the study language"
+        + (f", give its meaning{meaning}, then" if native_lines else ", then")
+        + f" ask one new, easy question about the picture{question_line}."
+    )
+
+
+ANSWERED_INSTRUCTION = answered_instruction(True)
 NEXT_SCENE_TRIGGER = (
     "[A new picture is now shown. Open with one or two short sentences about it, following "
     "the picture talk guidance.]"
@@ -44,6 +52,19 @@ RUNG_INSTRUCTIONS = {
         "easy question about the picture, with its marked native-language line."
     ),
 }
+
+
+def rung_instruction(rung: str, native_lines: bool) -> str:
+    """The instruction of a rung; the model answer rung asks for native lines only when enabled."""
+    if rung != RUNG_MODEL_ANSWER:
+        return RUNG_INSTRUCTIONS[rung]
+    if native_lines:
+        return RUNG_INSTRUCTIONS[RUNG_MODEL_ANSWER]
+    return (
+        "Give the model answer: the full answer in the study language, on one line. Then ask one "
+        "new, easy question about the picture."
+    )
+
 
 NARRATE_GUIDANCE = (
     "Mostly narrate the picture yourself in short, simple sentences. Ask only yes-or-no or "

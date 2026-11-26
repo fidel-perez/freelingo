@@ -509,3 +509,25 @@ async def test_unproduced_line_logged_as_mistake(db_session, test_user, plan) ->
         "Le chat dort.",
         plan.id,
     )
+
+
+async def test_same_language_asks_for_no_native_line(db_session, test_user, plan) -> None:
+    user, _ = test_user
+    pipeline, state, _ = _pipeline(
+        "A1", native_lines=False, native=False, user_id=user.id, study_plan_id=plan.id
+    )
+    state.open_question = True
+    state.rung = len(LEVELS["A1"].rungs) - 1
+    pipeline.llm.chat = _chat("Le chat dort.\n")
+
+    with _patch_db(db_session):
+        await pipeline.handle_button_event(FakeWS(), "took_too_long")
+        await _finish(pipeline)
+
+    assert "native-language" not in state.turn_context()
+    state.answer()
+    assert "native-language" not in state.turn_context()
+    mistakes = (await db_session.execute(select(Mistake))).scalars().all()
+    assert [(m.original, m.corrected, m.source) for m in mistakes] == [
+        ("Le chat dort.", "Le chat dort.", "voice")
+    ]

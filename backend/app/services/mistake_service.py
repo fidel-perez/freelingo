@@ -77,6 +77,7 @@ async def log_mistakes(
     source: str,
     *,
     commit: bool = True,
+    keep_identical: bool = False,
 ) -> int:
     """Log (original, corrected, note) entries in a plan and return how many were stored.
 
@@ -96,7 +97,9 @@ async def log_mistakes(
         original = _clean(raw_original, MAX_MISTAKE_CHARS)
         corrected = _clean(raw_corrected, MAX_MISTAKE_CHARS)
         note = _clean(raw_note, MAX_NOTE_CHARS)
-        if not original or not corrected or _key(original) == _key(corrected):
+        if not original or not corrected:
+            continue
+        if _key(original) == _key(corrected) and not keep_identical:
             continue
         mistake = (
             await db.execute(
