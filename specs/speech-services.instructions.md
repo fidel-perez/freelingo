@@ -265,7 +265,33 @@ starts. A later component update or active-language switch does not alter the in
 Lesson pronunciation evaluation compares the transcription with the persisted target sentence using
 the plan's target language, the user's native language, and the lesson level. This evaluates
 transcribed text, not acoustic phonemes. If LLM evaluation fails, normalized equality or containment
-provides the deterministic fallback.
+provides the deterministic fallback. When the local pronunciation provider is selected and the answer
+carries audio, the provider scores the audio instead, as described under "Pronunciation scoring".
+
+## Pronunciation scoring
+
+`PRONUNCIATION_PROVIDER` selects `llm` (default, transcript comparison) or `local`. `local` takes
+effect only when `PRONUNCIATION_BASE_URL` is also nonempty; otherwise the backend uses `llm`.
+
+The `local` provider (`pronunciation_service.py`) works in four steps:
+
+- It posts the recording to `{PRONUNCIATION_BASE_URL}/v1/phonemes` as multipart fields `file` and
+  `language`, with a 60-second timeout. `language` is the plan's target language.
+- The service returns `{"phonemes": [...]}`, a list of IPA phones.
+- The backend derives target phonemes from per-language data in `backend/app/data/<code>/phonemes.py`.
+  A word takes its lexicon entry, else a longest-match letter map. Both sides fold to a coarse phone set.
+- An edit-distance alignment scores each word and the whole phrase as the share of matched target
+  phonemes. Unmatched target phonemes become the word's weak phonemes.
+
+The backend falls back to the `llm` path when the service fails or times out, returns an unusable body,
+the audio exceeds 10 MiB, or the target language has no phoneme data. Fallback leaves no trace in the
+response, which then carries `words: null`.
+
+`pronunciation-server/` is the optional service. It exposes `POST /v1/phonemes` and `GET /` (health,
+200 after model load), listens on port 8000, and decodes with a zipa ONNX model. It reads the
+`PHONEME_MODEL_DIR` (default `/models`), `PHONEME_MODEL_FILE` and `PHONEME_MODEL_URL` variables. The image
+holds no model weights. `docker.instructions.md` owns the topology; `learning-resources.instructions.md`
+owns the exercise behaviour.
 
 Flashcard speaking comparison occurs in the frontend after STT. The UI shows the transcription,
 expected word and expected-word audio before the learner saves the result. Normalized exact equality
@@ -411,3 +437,4 @@ or unmount cancels either wait; warmup timeout aborts the request.
 - `multi-language.instructions.md` — plan ownership and target-language rules.
 - `services.instructions.md` — complete backend service inventory.
 - `docker.instructions.md` — deployment topology and provider containers.
+- `learning-resources.instructions.md` — pronunciation exercise answers and word scores.

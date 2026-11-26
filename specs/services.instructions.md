@@ -236,6 +236,13 @@ and output format. Provider configuration and the supported Gemini 3.8 contract 
 OpenAI. `language` is required and explicit. Resource STT derives it from an owned plan; voice derives
 it from resolved session language.
 
+`pronunciation_service.py` scores pronunciation audio through `LocalPronunciationProvider.score(...)`.
+`get_pronunciation_provider()` returns it only when `PRONUNCIATION_PROVIDER=local` and
+`PRONUNCIATION_BASE_URL` is nonempty; otherwise it returns `None` and the lesson route uses the LLM.
+Both variables are backend `Settings` fields, default to `llm` and an empty string, and both Compose
+files forward them to the backend. A failure raises `PronunciationUnavailable`, which the route turns
+into the LLM path.
+
 Provider details belong to `speech-services.instructions.md`.
 
 ## Listening and Reading

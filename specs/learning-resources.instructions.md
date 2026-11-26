@@ -438,6 +438,20 @@ Recommendations are persisted, but current frontend actions only navigate to Ass
 They do not automatically create a next-level plan, extend duration, focus weak units, or archive and
 repeat a plan.
 
+## Pronunciation exercise answers
+
+`POST /exercises/{exercise_id}/answer` accepts either a JSON body with `answer` or a multipart form with
+the fields `answer` and `audio`. Only pronunciation exercises use `audio`.
+
+The response keeps its existing fields and adds `words`, either `null` or a list of
+`{word, score, weak_phonemes}`. `words` is a list only when the local provider scored the audio.
+Without audio, with `PRONUNCIATION_PROVIDER=llm`, or after a provider fallback, the exercise score and
+feedback come from the LLM or the deterministic text comparison, and `words` is `null`.
+
+With the local provider, the exercise score is the share of matched target phonemes. Scores of 0.8 or
+higher return the good-pronunciation feedback; lower scores return the target phrase.
+`speech-services.instructions.md` owns the provider contract and fallback rules.
+
 ## Navigation
 
 Grammar, Vocabulary, and Phrasebook appear in the Resources group on desktop and mobile. Progress

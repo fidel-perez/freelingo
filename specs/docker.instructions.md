@@ -17,6 +17,12 @@ applyTo: "docker-compose*.yml, .env.example, .env.dev, backend/Dockerfile, front
   selects backend connectivity.
 - `kokoro`: local TTS GPU image, required only when `TTS_PROVIDER=local`.
 - `whisper`: local STT GPU image, required only when `STT_PROVIDER=local`.
+- `pronunciation`: phoneme service built from `pronunciation-server/`, under the Compose profile
+  `pronunciation`, so it is off by default. Start it with `docker compose --profile pronunciation up`.
+  It listens on port 8000 with no published port, and the backend reaches it through
+  `PRONUNCIATION_BASE_URL=http://pronunciation:8000`. The backend image holds no model, and the
+  `pronunciation` image holds no weights either; the service reads them from `PHONEME_MODEL_DIR` or
+  downloads them from `PHONEME_MODEL_URL`. Contract: `speech-services.instructions.md`.
 
 Ollama is not a Compose service. `OLLAMA_BASE_URL` selects its address; use `.env.example` and
 `backend/app/core/config.py` for the template and backend fallback. Production Compose does not
@@ -35,7 +41,7 @@ use `NEXT_PUBLIC_API_URL` and the `/ws/conversation` path. Their concrete addres
 `docker-compose.dev.yml`. Next.js HTTP rewrites do not forward this WebSocket route.
 `.env.dev` supplies localhost application and billing return URLs for this topology.
 
-It does not define Kokoro or Whisper. Development must therefore select external/cloud speech
+It does not define Kokoro, Whisper or `pronunciation`. Development must therefore select external/cloud speech
 providers or compose the missing local services separately. Its default local speech hostnames are not
 services contained in that file.
 
