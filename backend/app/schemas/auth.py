@@ -17,7 +17,16 @@ def validate_password_strength(v: str) -> str:
     return v
 
 
-from pydantic import BaseModel, EmailStr, Field, field_serializer, field_validator
+from pydantic import (
+    BaseModel,
+    EmailStr,
+    Field,
+    computed_field,
+    field_serializer,
+    field_validator,
+)
+
+from app.core.config import settings
 
 SUPPORTED_LANGUAGES = {
     "en",
@@ -163,6 +172,7 @@ class UserResponse(BaseModel):
     conversation_inactivity_timeout: int
     conversation_speech_pause: int = 0
     correction_style: str = "recast"
+    images_enabled: bool = False
     avatar: str | None = None
     bio: str | None = None
     learning_goals: list[str] | None = None
@@ -177,6 +187,16 @@ class UserResponse(BaseModel):
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+    @computed_field
+    @property
+    def image_model_base_url(self) -> str:
+        return settings.IMAGE_MODEL_BASE_URL.strip()
+
+    @computed_field
+    @property
+    def image_model_configured(self) -> bool:
+        return bool(settings.IMAGE_MODEL_BASE_URL.strip())
 
     @field_validator("learning_goals", mode="before")
     @classmethod
@@ -214,6 +234,7 @@ class UserUpdateRequest(BaseModel):
     conversation_inactivity_timeout: int | None = None
     conversation_speech_pause: int | None = None
     correction_style: Literal["explicit", "recast"] | None = None
+    images_enabled: bool | None = None
     bio: str | None = Field(default=None, max_length=500)
     learning_goals: list[str] | None = None
 

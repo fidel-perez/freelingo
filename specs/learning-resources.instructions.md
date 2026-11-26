@@ -466,4 +466,5 @@ Grammar Practice appears in the Practice group and is also reachable from gramma
 - `grammar-practice.instructions.md` — personal grammar library, saved practice, and voice continuation.
 - `target-language.instructions.md` and `add-target-language.instructions.md` — language data rules.
 - `speech-services.instructions.md` — phrase audio.
+- `browser-images.instructions.md` — opt-in lesson images drawn in the browser.
 - `database-models.instructions.md` and `api-endpoints.instructions.md` — complete contracts.

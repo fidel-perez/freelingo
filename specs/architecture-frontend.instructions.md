@@ -718,6 +718,7 @@ Detailed behavior belongs to `platform.instructions.md`, `speech-services.instru
 - `platform.instructions.md`: shell, auth, onboarding, dashboard, and chat.
 - `learning-resources.instructions.md`: backend-owned resource contracts.
 - `multi-language.instructions.md`: language state and switching.
+- `browser-images.instructions.md`: browser-drawn images, the worker, and the per-request CSP in middleware.
 - `public-site.instructions.md`: public landing and static project overview.
 - Domain specs: detailed page and interaction behavior.
 - `testing.instructions.md`: frontend validation and mocking conventions.

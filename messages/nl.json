@@ -2391,5 +2391,10 @@
     "label": "Onderhoud",
     "title": "In onderhoud",
     "description": "Dit gedeelte is tijdelijk niet beschikbaar vanwege onderhoud. Probeer het later opnieuw."
+  },
+  "browserImages": {
+    "title": "Afbeeldingen in je browser",
+    "description": "Tekent een illustratie bij lessen en situaties met je videokaart. Bij het eerste gebruik worden enkele GB modelgegevens gedownload, die in deze browser blijven.",
+    "toggle": "Afbeeldingen tonen"
   }
 }

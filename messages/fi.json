@@ -2391,5 +2391,10 @@
     "label": "Huolto",
     "title": "Huolto käynnissä",
     "description": "Tämä osio on väliaikaisesti poissa käytöstä huollon vuoksi. Palaa myöhemmin."
+  },
+  "browserImages": {
+    "title": "Kuvat selaimessasi",
+    "description": "Piirtää kuvituksen oppitunneille ja tilanteisiin näytönohjaimellasi. Ensimmäinen käyttökerta lataa useita Gt mallidataa, joka jää tähän selaimeen.",
+    "toggle": "Näytä kuvat"
   }
 }

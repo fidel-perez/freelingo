@@ -12,7 +12,7 @@ from app.models.grammar_practice import (
     GrammarPracticeSession,
     GrammarPracticeTopic,
 )
-from app.models.lesson import Exercise, Lesson
+from app.models.lesson import Exercise, Lesson, SituationImagePrompt
 from app.models.listening import ListeningAttempt, ListeningExercise
 from app.models.llm_usage import LLMUsage
 from app.models.memory import Memory
@@ -48,6 +48,7 @@ __all__ = [
     "GrammarPracticeTopic",
     "Exercise",
     "Lesson",
+    "SituationImagePrompt",
     "ListeningAttempt",
     "ListeningExercise",
     "LLMUsage",

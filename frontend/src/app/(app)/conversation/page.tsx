@@ -7,6 +7,7 @@
  */
 'use client'
 
+import { BrowserImage } from '@/components/BrowserImage'
 import { useCallback, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useTranslations } from 'next-intl'
@@ -538,28 +539,39 @@ function ConversationPageContent({ practice }: { practice?: LessonPractice }) {
           <PaywallBanner feature={exhaustedFeature} compact />
         </>
       ) : (
-        <ConversationMode
-          initialContext={initialContext}
-          autoStart={autoStart}
-          cefrLevel={cefrLevel}
-          targetLanguage={practice?.targetLanguage ?? activeLanguage?.code}
-          lessonId={practice?.id}
-          grammarPracticeSessionId={practice?.grammarPracticeSessionId}
-          situationId={practice?.situationId}
-          situationStudyPlanId={practice?.situationStudyPlanId}
-          lessonTitle={
-            practice?.situationId
-              ? tSituations(`items.${practice.situationId}.title`)
-              : practice?.title
-          }
-          onSessionActiveChange={handleSessionActiveChange}
-          freemiumVoiceRemaining={
-            showFreemiumVoicePill ? freemiumVoiceRemaining : undefined
-          }
-          freemiumVoiceLimit={
-            showFreemiumVoicePill ? freemiumVoiceLimit : undefined
-          }
-        />
+        <>
+          {practice?.situationId &&
+            practice.situationStudyPlanId &&
+            !sessionStarted && (
+              <div className="mb-4">
+                <BrowserImage
+                  promptPath={`/api/situations/${practice.situationId}/image-prompt?study_plan_id=${practice.situationStudyPlanId}`}
+                />
+              </div>
+            )}
+          <ConversationMode
+            initialContext={initialContext}
+            autoStart={autoStart}
+            cefrLevel={cefrLevel}
+            targetLanguage={practice?.targetLanguage ?? activeLanguage?.code}
+            lessonId={practice?.id}
+            grammarPracticeSessionId={practice?.grammarPracticeSessionId}
+            situationId={practice?.situationId}
+            situationStudyPlanId={practice?.situationStudyPlanId}
+            lessonTitle={
+              practice?.situationId
+                ? tSituations(`items.${practice.situationId}.title`)
+                : practice?.title
+            }
+            onSessionActiveChange={handleSessionActiveChange}
+            freemiumVoiceRemaining={
+              showFreemiumVoicePill ? freemiumVoiceRemaining : undefined
+            }
+            freemiumVoiceLimit={
+              showFreemiumVoicePill ? freemiumVoiceLimit : undefined
+            }
+          />
+        </>
       )}
     </MaintenanceGate>
   )

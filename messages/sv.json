@@ -2391,5 +2391,10 @@
     "label": "Underhåll",
     "title": "Underhåll pågår",
     "description": "Det här avsnittet är tillfälligt otillgängligt medan vi utför underhåll. Kom tillbaka senare."
+  },
+  "browserImages": {
+    "title": "Bilder i webbläsaren",
+    "description": "Ritar en illustration till lektioner och situationer med ditt grafikkort. Första användningen laddar ner flera GB modelldata, som stannar i den här webbläsaren.",
+    "toggle": "Visa bilder"
   }
 }

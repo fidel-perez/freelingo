@@ -29,6 +29,7 @@ class Settings(BaseSettings):
     DEEPSEEK_MODEL: str = "deepseek-chat"
     TTS_PROVIDER: Literal["local", "openai", "gemini"] = "local"
     TTS_BASE_URL: str = "http://kokoro:8880"
+    IMAGE_MODEL_BASE_URL: str = ""
     TTS_VOICE: str = "af_heart"
     OPENAI_TTS_MODEL: str = "gpt-4o-mini-tts"
     OPENAI_TTS_VOICE: Literal["female", "male"] = "female"

@@ -2391,5 +2391,10 @@
     "label": "Održavanje",
     "title": "Održavanje u tijeku",
     "description": "Ovaj je odjeljak privremeno nedostupan zbog održavanja. Vrati se poslije."
+  },
+  "browserImages": {
+    "title": "Slike u pregledniku",
+    "description": "Crta ilustraciju za lekcije i situacije pomoću vaše grafičke kartice. Prvo korištenje preuzima nekoliko GB podataka modela, koji ostaju u ovom pregledniku.",
+    "toggle": "Prikaži slike"
   }
 }

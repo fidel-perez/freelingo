@@ -2391,5 +2391,10 @@
     "label": "Bakım",
     "title": "Bakımda",
     "description": "Bakım çalışması yaptığımız için bu bölüm geçici olarak kullanılamıyor. Lütfen daha sonra tekrar kontrol edin."
+  },
+  "browserImages": {
+    "title": "Tarayıcıda görseller",
+    "description": "Dersler ve durumlar için ekran kartınızla bir çizim oluşturur. İlk kullanımda birkaç GB model verisi indirilir ve bu tarayıcıda kalır.",
+    "toggle": "Görselleri göster"
   }
 }

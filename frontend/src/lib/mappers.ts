@@ -52,6 +52,11 @@ export function mapUser(
       data.dismissed_dashboard_banner_revision ??
       current?.dismissed_dashboard_banner_revision ??
       null,
+    images_enabled: data.images_enabled ?? current?.images_enabled,
+    image_model_base_url:
+      data.image_model_base_url ?? current?.image_model_base_url,
+    image_model_configured:
+      data.image_model_configured ?? current?.image_model_configured,
   }
 }
 

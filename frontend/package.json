@@ -3,16 +3,19 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "predev": "node scripts/copy-ort-image.js",
     "dev": "next dev",
+    "prebuild": "node scripts/copy-ort-image.js",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
     "test": "vitest",
     "test:run": "vitest run",
-    "postinstall": "node scripts/patch-vad.js && node scripts/copy-vad-models.js"
+    "postinstall": "node scripts/patch-vad.js && node scripts/copy-vad-models.js && node scripts/copy-ort-image.js"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",
+    "@huggingface/tokenizers": "0.2.0",
     "@ricky0123/vad-react": "^0.0.37",
     "@ricky0123/vad-web": "^0.0.31",
     "class-variance-authority": "^0.7.1",
@@ -20,6 +23,7 @@
     "lucide-react": "^1.61.0",
     "next": "16.4.6",
     "next-intl": "^4.14.9",
+    "onnxruntime-web": "1.31.1",
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "react-markdown": "^10.1.0",

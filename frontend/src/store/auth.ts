@@ -39,6 +39,9 @@ export interface User {
   freemium_trial_ends_at?: string | null
   freemium_trial_used?: boolean
   dismissed_dashboard_banner_revision?: number | null
+  images_enabled?: boolean
+  image_model_base_url?: string
+  image_model_configured?: boolean
 }
 
 /** Returns true when the user has an active/trialing subscription, or when Stripe is disabled (self-hosted). */

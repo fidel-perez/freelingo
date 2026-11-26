@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import { buildCsp } from '@/lib/csp'
 import { SUPPORTED_LOCALES, type Locale } from '@/lib/locales'
 
 // Routes that require authentication — anything else passes through so unknown
@@ -60,7 +61,27 @@ function detectLocale(req: NextRequest): Locale {
   return 'en'
 }
 
+function withCsp(response: NextResponse): NextResponse {
+  if (process.env.NODE_ENV === 'production') {
+    response.headers.set(
+      'Content-Security-Policy',
+      buildCsp(process.env.IMAGE_MODEL_BASE_URL ?? '')
+    )
+  }
+  return response
+}
+
+// Paths the locale and auth logic never applied to; they only get the policy.
+const POLICY_ONLY =
+  /^\/(_next|api)(\/|$)|^\/favicon\.ico$|\.(?:svg|png|jpg|jpeg|gif|webp|ico)$/
+
 export function middleware(req: NextRequest) {
+  return withCsp(handle(req))
+}
+
+function handle(req: NextRequest) {
+  if (POLICY_ONLY.test(req.nextUrl.pathname)) return NextResponse.next()
+
   // Detect locale first so we can forward it as a request header.
   // This is needed because request.ts reads incoming request headers/cookies;
   // a cookie set only on the response is not visible on that same request cycle.
@@ -105,7 +126,5 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: [
-    '/((?!_next|favicon\.ico|api|.*\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)',
-  ],
+  matcher: ['/:path*'],
 }

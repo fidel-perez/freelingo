@@ -245,6 +245,12 @@ into the LLM path.
 
 Provider details belong to `speech-services.instructions.md`.
 
+## Browser image prompts
+
+The lesson and situation routers ask the configured LLM for a short English image prompt and cache it
+(`lessons.image_prompt`, `situation_image_prompts`). The server draws no image. Contract:
+`browser-images.instructions.md`.
+
 ## Listening and Reading
 
 `listening_service.py` resolves reusable exercises, generates structured content and TTS audio, scores

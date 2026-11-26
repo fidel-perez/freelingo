@@ -20,6 +20,7 @@ import { AudioPlayer } from '@/components/ui/AudioPlayer'
 import { ExerciseAudioPlayer } from '@/components/ui/exercise-audio-player'
 import { VoiceRecorder } from '@/components/ui/VoiceRecorder'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { BrowserImage } from '@/components/BrowserImage'
 import { LessonVoicePracticeButton } from '@/components/lesson/LessonVoicePracticeButton'
 import { QuestionTranslation } from '@/components/lesson/QuestionTranslation'
 import { WordTooltip, useWordSave } from '@/components/ui/WordTooltip'
@@ -787,6 +788,13 @@ function LessonContent() {
             <p className="text-fl-fg font-mono text-base font-bold tracking-wide">
               {lesson?.title}
             </p>
+            {lesson && (
+              <div className="mt-4">
+                <BrowserImage
+                  promptPath={`/api/lessons/${lesson.id}/image-prompt`}
+                />
+              </div>
+            )}
             {explanation && (
               <div className="mt-4 max-w-[70ch] space-y-3">
                 {explanation.text != null && (

@@ -2391,5 +2391,10 @@
     "label": "Konserwacja",
     "title": "W trakcie konserwacji",
     "description": "Ta sekcja jest tymczasowo niedostępna z powodu prac konserwacyjnych. Spróbuj ponownie później."
+  },
+  "browserImages": {
+    "title": "Obrazy w przeglądarce",
+    "description": "Rysuje ilustrację do lekcji i sytuacji za pomocą karty graficznej. Pierwsze użycie pobiera kilka GB danych modelu, które zostają w tej przeglądarce.",
+    "toggle": "Pokazuj obrazy"
   }
 }

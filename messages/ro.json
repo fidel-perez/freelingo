@@ -2391,5 +2391,10 @@
     "label": "Întreținere",
     "title": "În mentenanță",
     "description": "Această secțiune este temporar indisponibilă pentru lucrări de întreținere. Încearcă din nou mai târziu."
+  },
+  "browserImages": {
+    "title": "Imagini în browser",
+    "description": "Desenează o ilustrație pentru lecții și situații cu placa ta video. Prima utilizare descarcă câțiva GB de date ale modelului, care rămân în acest browser.",
+    "toggle": "Afișează imaginile"
   }
 }

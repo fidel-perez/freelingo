@@ -36,6 +36,7 @@ from app.schemas.lessons import (
     PronunciationWordScore,
     QuestionTranslationResponse,
 )
+from app.services.image_prompts import get_lesson_image_prompt
 from app.services.language_helpers import get_language_name, get_native_language_name
 from app.services.learning_analytics import LearningEvent, record_learning_event
 from app.services.lesson_generator import (
@@ -363,6 +364,18 @@ def _regeneration_inputs(
         "target_language": target_language,
         "native_language": native_language,
     }
+
+
+@router.get("/{lesson_id}/image-prompt")
+@limiter.limit("30/minute")
+async def get_lesson_image_prompt_route(
+    request: Request,
+    lesson_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> dict[str, str]:
+    lesson = await _get_lesson_for_user(lesson_id, current_user.id, db)
+    return {"prompt": await get_lesson_image_prompt(db, lesson)}
 
 
 @router.get("/{lesson_id}", response_model=LessonDetailResponse)

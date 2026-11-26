@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from sqlalchemy import Boolean, DateTime, Integer, String, Text
+from sqlalchemy import Boolean, DateTime, Integer, String, Text, false
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.config import settings
@@ -49,6 +49,9 @@ class User(Base):
         nullable=False,
         default="recast",
         server_default="recast",
+    )
+    images_enabled: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default=false()
     )
     conversation_weekly_sessions: Mapped[int] = mapped_column(
         Integer,

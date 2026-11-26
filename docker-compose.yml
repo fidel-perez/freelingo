@@ -58,6 +58,7 @@ services:
       TTS_PROVIDER: ${TTS_PROVIDER:-local}
       TTS_BASE_URL: ${TTS_BASE_URL:-http://kokoro:8880}
       TTS_VOICE: ${TTS_VOICE:-af_heart}
+      IMAGE_MODEL_BASE_URL: ${IMAGE_MODEL_BASE_URL:-}
       OPENAI_TTS_MODEL: ${OPENAI_TTS_MODEL:-gpt-4o-mini-tts}
       OPENAI_TTS_VOICE: ${OPENAI_TTS_VOICE:-female}
       OPENAI_TTS_FEMALE_VOICE: ${OPENAI_TTS_FEMALE_VOICE:-marin}
@@ -141,6 +142,7 @@ services:
     restart: unless-stopped
     environment:
       BACKEND_URL: http://backend:8000
+      IMAGE_MODEL_BASE_URL: ${IMAGE_MODEL_BASE_URL:-}
       NEXT_PUBLIC_UMAMI_SCRIPT_URL: ${NEXT_PUBLIC_UMAMI_SCRIPT_URL:-}
       NEXT_PUBLIC_UMAMI_WEBSITE_ID: ${NEXT_PUBLIC_UMAMI_WEBSITE_ID:-}
     ports:

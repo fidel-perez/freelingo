@@ -2391,5 +2391,10 @@
     "label": "Manutenção",
     "title": "Em manutenção",
     "description": "Esta seção está temporariamente indisponível para manutenção. Volte mais tarde."
+  },
+  "browserImages": {
+    "title": "Imagens no seu navegador",
+    "description": "Desenha uma ilustração nas lições e situações com a sua placa gráfica. O primeiro uso baixa vários GB de dados do modelo, que ficam neste navegador.",
+    "toggle": "Mostrar imagens"
   }
 }

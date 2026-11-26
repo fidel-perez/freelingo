@@ -26,6 +26,10 @@ applyTo: "docker-compose*.yml, .env.example, .env.dev, backend/Dockerfile, front
   service downloads `model.onnx` and `tokens.txt` from `PHONEME_MODEL_URL` (empty by default) when
   the volume lacks them. Contract: `speech-services.instructions.md`.
 
+Both Compose files forward `IMAGE_MODEL_BASE_URL` (empty by default, feature off) to the backend and to
+the frontend in `environment:`. The frontend middleware reads it at request time to build the
+production CSP. Contract: `browser-images.instructions.md`.
+
 Ollama is not a Compose service. `OLLAMA_BASE_URL` selects its address; use `.env.example` and
 `backend/app/core/config.py` for the template and backend fallback. Production Compose does not
 declare an `extra_hosts` mapping. Linux deployments using host-based Ollama must provide resolution

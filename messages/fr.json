@@ -2391,5 +2391,10 @@
     "label": "Maintenance",
     "title": "En maintenance",
     "description": "Cette section est temporairement indisponible pour cause de maintenance. Veuillez réessayer plus tard."
+  },
+  "browserImages": {
+    "title": "Images dans votre navigateur",
+    "description": "Dessine une illustration pour les leçons et les situations avec votre carte graphique. Le premier usage télécharge plusieurs Go de données de modèle, qui restent dans ce navigateur.",
+    "toggle": "Afficher les images"
   }
 }

@@ -118,6 +118,11 @@ These are conversational instructions, not deterministic grading or a fixed turn
 A verbal conclusion does not emit `session_end` or close the WebSocket; the learner can continue or
 stop within the existing voice limits. Shared tutor and native-language-help policies still apply.
 
+## Images
+
+When the learner enables browser images, a situation can show an image drawn in the browser from a
+cached English prompt. Contract: `browser-images.instructions.md`.
+
 ## Access and usage
 
 Loading or filtering the catalog and voice warmup do not consume an attempt. Starting a situation requires its

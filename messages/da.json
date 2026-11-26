@@ -2391,5 +2391,10 @@
     "label": "Vedligeholdelse",
     "title": "Vedligeholdelse i gang",
     "description": "Dette afsnit er midlertidigt utilgængeligt, mens vi udfører vedligeholdelse. Kom tilbage senere."
+  },
+  "browserImages": {
+    "title": "Billeder i din browser",
+    "description": "Tegn en illustration til lektioner og situationer med dit grafikkort. Første brug henter flere GB modeldata, som bliver i denne browser.",
+    "toggle": "Vis billeder"
   }
 }

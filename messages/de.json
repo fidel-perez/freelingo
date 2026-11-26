@@ -2391,5 +2391,10 @@
     "label": "Wartung",
     "title": "Wartungsarbeiten",
     "description": "Dieser Bereich ist wegen Wartungsarbeiten vorübergehend nicht verfügbar. Bitte versuche es später erneut."
+  },
+  "browserImages": {
+    "title": "Bilder im Browser",
+    "description": "Zeichnet mit deiner Grafikkarte eine Illustration zu Lektionen und Situationen. Bei der ersten Nutzung werden mehrere GB Modelldaten geladen, die in diesem Browser bleiben.",
+    "toggle": "Bilder anzeigen"
   }
 }

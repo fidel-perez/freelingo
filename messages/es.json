@@ -2391,5 +2391,10 @@
     "label": "Mantenimiento",
     "title": "En mantenimiento",
     "description": "Esta sección no está disponible temporalmente por tareas de mantenimiento. Vuelve más tarde."
+  },
+  "browserImages": {
+    "title": "Imágenes en tu navegador",
+    "description": "Dibuja una ilustración en las lecciones y situaciones con tu tarjeta gráfica. El primer uso descarga varios GB de datos del modelo, que se quedan en este navegador.",
+    "toggle": "Mostrar imágenes"
   }
 }

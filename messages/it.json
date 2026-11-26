@@ -2391,5 +2391,10 @@
     "label": "Manutenzione",
     "title": "In manutenzione",
     "description": "Questa sezione è temporaneamente non disponibile per manutenzione. Riprova più tardi."
+  },
+  "browserImages": {
+    "title": "Immagini nel browser",
+    "description": "Disegna un'illustrazione per lezioni e situazioni con la tua scheda grafica. Il primo utilizzo scarica diversi GB di dati del modello, che restano in questo browser.",
+    "toggle": "Mostra le immagini"
   }
 }

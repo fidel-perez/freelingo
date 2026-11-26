@@ -2391,5 +2391,10 @@
     "label": "Maintenance",
     "title": "Under Maintenance",
     "description": "This section is temporarily unavailable while we perform maintenance. Please check back later."
+  },
+  "browserImages": {
+    "title": "Images in your browser",
+    "description": "Draw an illustration on lessons and situations with your graphics card. The first use downloads several GB of model data, which stays in this browser.",
+    "toggle": "Show images"
   }
 }

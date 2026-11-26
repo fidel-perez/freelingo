@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 
 from sqlalchemy import (
     Boolean,
@@ -46,6 +46,18 @@ class Lesson(Base):
     content: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
     is_completed: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     completed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    # English image prompt generated once and reused on every revisit.
+    image_prompt: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
+class SituationImagePrompt(Base):
+    __tablename__ = "situation_image_prompts"
+
+    situation_id: Mapped[str] = mapped_column(String(100), primary_key=True)
+    prompt: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, default=lambda: datetime.now(UTC).replace(tzinfo=None)
+    )
 
 
 class Exercise(Base):

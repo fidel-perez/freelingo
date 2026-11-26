@@ -24,6 +24,7 @@ import { CorrectionStyleSection } from '@/components/settings/CorrectionStyleSec
 import { VoiceSection } from '@/components/settings/VoiceSection'
 import { UsageLimitsSection } from '@/components/settings/UsageLimitsSection'
 import { AppearanceSection } from '@/components/settings/AppearanceSection'
+import { BrowserImagesSection } from '@/components/settings/BrowserImagesSection'
 import { BillingSection } from '@/components/settings/BillingSection'
 import { ReviewSection } from '@/components/settings/ReviewSection'
 import {
@@ -196,6 +197,9 @@ export default function SettingsPage() {
 
         <SettingsPanel id="preferences" title={t('sectionAppearance')}>
           <AppearanceSection title={t('cardTheme')} />
+          <div className="mt-4">
+            <BrowserImagesSection />
+          </div>
         </SettingsPanel>
 
         <SettingsPanel id="voice" title={t('sectionConversation')}>
