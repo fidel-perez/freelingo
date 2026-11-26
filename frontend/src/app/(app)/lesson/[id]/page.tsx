@@ -53,6 +53,12 @@ import {
   getTargetLanguageTextClass,
 } from '@/lib/target-languages'
 
+interface PronunciationWord {
+  word: string
+  score: number
+  weak_phonemes: string[]
+}
+
 interface ExerciseItem {
   id: number
   exercise_type: string
@@ -65,6 +71,7 @@ interface ExerciseItem {
   score: number | null
   feedback: string | null
   corrections: FreeWriteCorrection[] | null
+  words?: PronunciationWord[] | null
   native_hint: string | null
   question_translation?: string | null
   question_translation_language?: string | null
@@ -168,6 +175,7 @@ function LessonContent() {
   const [currentExercise, setCurrentExercise] = useState(0)
   const [answer, setAnswer] = useState('')
   const [evaluating, setEvaluating] = useState(false)
+  const recordingRef = useRef<Blob | null>(null)
   const [voiceRecorderBusy, setVoiceRecorderBusy] = useState(false)
   const [completed, setCompleted] = useState(false)
   const [dayComplete, setDayComplete] = useState(false)
@@ -389,6 +397,8 @@ function LessonContent() {
   }, [currentExercise, activeQuestion, dismissTooltip])
 
   async function submitAnswer(overrideAnswer?: string) {
+    const audio = recordingRef.current
+    recordingRef.current = null
     if (isReview || operationRef.current) return
     const finalAnswer = overrideAnswer ?? answer
     if (!finalAnswer.trim()) return
@@ -405,14 +415,25 @@ function LessonContent() {
     setEvaluating(true)
     setSubmitError(false)
     try {
-      const res = await apiFetch(
-        `/api/lessons/exercises/${exercise.id}/answer`,
-        {
+      // The audio goes beside the transcript so the backend scores phonemes;
+      // without a recording the JSON call keeps the LLM path.
+      let init: RequestInit
+      if (audio) {
+        const form = new FormData()
+        form.append('answer', finalAnswer)
+        form.append('audio', audio, 'recording.wav')
+        init = { method: 'POST', body: form, signal: controller.signal }
+      } else {
+        init = {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ answer: finalAnswer }),
           signal: controller.signal,
         }
+      }
+      const res = await apiFetch(
+        `/api/lessons/exercises/${exercise.id}/answer`,
+        init
       )
       if (!res.ok) throw new Error(`${res.status}`)
       const result = await res.json()
@@ -425,6 +446,7 @@ function LessonContent() {
                 score: result.score,
                 feedback: result.feedback,
                 corrections: result.corrections ?? null,
+                words: result.words ?? null,
                 user_answer: finalAnswer,
               }
             : item
@@ -676,6 +698,9 @@ function LessonContent() {
   const listeningReady = !!exercise && isListeningReady(exercise)
   const operationPending = evaluating || regeneratingExercise
   const isAnswerCorrect = (exercise?.score ?? 0) >= 1
+  const weakWords = (exercise?.words ?? []).filter(
+    (item) => item.weak_phonemes.length > 0
+  )
   const exerciseCorrections = (exercise?.corrections ?? []).filter(
     (c) => c.original && c.corrected
   )
@@ -1237,6 +1262,9 @@ function LessonContent() {
                   {!isEvaluated && !isReview && lesson && (
                     <VoiceRecorder
                       studyPlanId={lesson.study_plan_id}
+                      onAudio={(audio) => {
+                        recordingRef.current = audio
+                      }}
                       onTranscription={(text) => submitAnswer(text)}
                       onBusyChange={setVoiceRecorderBusy}
                       maxSeconds={8}
@@ -1392,6 +1420,32 @@ function LessonContent() {
                                 {correction.explanation}
                               </p>
                             )}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {weakWords.length > 0 && (
+                    <div className="border-fl-border border px-4 py-4">
+                      <p className="text-fl-label text-fl-muted-2 mb-2 font-mono tracking-widest uppercase">
+                        {t('pronunciationWeakPhonemes')}
+                      </p>
+                      <ul className="space-y-2">
+                        {weakWords.map((item, index) => (
+                          <li
+                            key={index}
+                            className="flex flex-wrap items-baseline gap-3"
+                          >
+                            <TargetLanguageText
+                              as="span"
+                              languageCode={targetLanguageCode}
+                              className="text-fl-fg font-bold"
+                            >
+                              {item.word}
+                            </TargetLanguageText>
+                            <span className="text-fl-muted-1 font-code text-sm">
+                              {item.weak_phonemes.join(' ')}
+                            </span>
                           </li>
                         ))}
                       </ul>

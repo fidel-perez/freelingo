@@ -8,22 +8,27 @@ import { float32ToWav } from '@/lib/audio'
 interface VoiceRecorderProps {
   studyPlanId: number
   onTranscription: (text: string) => void | Promise<void>
+  onAudio?: (audio: Blob) => void
   maxSeconds?: number
   disabled?: boolean
   className?: string
   onBusyChange?: (busy: boolean) => void
 }
 
+const MIN_AUDIO_SAMPLES = 4000
+
 type RecorderState = 'idle' | 'recording' | 'transcribing' | 'error'
 
 interface RecordingContext {
   studyPlanId: number
   onTranscription: VoiceRecorderProps['onTranscription']
+  onAudio?: VoiceRecorderProps['onAudio']
 }
 
 export function VoiceRecorder({
   studyPlanId,
   onTranscription,
+  onAudio,
   maxSeconds = 5,
   disabled = false,
   className = '',
@@ -129,12 +134,9 @@ export function VoiceRecorder({
 
       if (!mountedRef.current) return
       const wav = float32ToWav(samples, 16000)
+      const audioBlob = new Blob([wav], { type: 'audio/wav' })
       const formData = new FormData()
-      formData.append(
-        'audio',
-        new Blob([wav], { type: 'audio/wav' }),
-        'recording.wav'
-      )
+      formData.append('audio', audioBlob, 'recording.wav')
       formData.append('study_plan_id', String(context.studyPlanId))
 
       controller = new AbortController()
@@ -147,6 +149,8 @@ export function VoiceRecorder({
       if (!res.ok) throw new Error(`STT error ${res.status}`)
       const { text } = (await res.json()) as { text: string }
       if (!mountedRef.current) return
+      // Phoneme scoring needs real speech; a clip under 0.25 s is only transcribed.
+      if (samples.length >= MIN_AUDIO_SAMPLES) context.onAudio?.(audioBlob)
       await context.onTranscription(text)
       if (mountedRef.current) setState('idle')
     } catch {
@@ -173,7 +177,7 @@ export function VoiceRecorder({
   }
 
   async function startRecording() {
-    const context = { studyPlanId, onTranscription }
+    const context = { studyPlanId, onTranscription, onAudio }
     recordingContextRef.current = context
     chunksRef.current = []
     try {
