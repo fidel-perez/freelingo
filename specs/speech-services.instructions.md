@@ -46,7 +46,11 @@ TTS configuration:
 STT configuration:
 
 - `STT_PROVIDER=local` selects the local Whisper service; `openai` selects OpenAI transcription.
-- `STT_BASE_URL` selects the local Whisper endpoint.
+- `STT_PROVIDER=openai-compatible` selects a self-hosted server that serves
+  `POST /v1/audio/transcriptions` (Speaches). The backend sends the WAV as multipart field `file`
+  with the explicit `language` and the built-in model id `deepdml/faster-whisper-large-v3-turbo-ct2`.
+  No setting overrides that id, and `STT_MODEL` still names the Whisper container's model.
+- `STT_BASE_URL` selects the Whisper or OpenAI-compatible endpoint.
 - `OPENAI_STT_MODEL` selects the OpenAI transcription model.
 - `STT_MODEL` and `STT_ENGINE` configure the local Whisper container as `ASR_MODEL` and
   `ASR_ENGINE` in `docker-compose.yml`; they are not backend `Settings` fields.
@@ -54,6 +58,11 @@ STT configuration:
 `OPENAI_API_KEY` is required at startup when either selected speech provider is OpenAI.
 `GEMINI_API_KEY` is required only when `TTS_PROVIDER=gemini`. Local providers remain independent of
 cloud credentials. `TTS_PROVIDER` rejects values outside `local`, `openai`, and `gemini`.
+
+Voice turns call TTS once per finished sentence while the LLM still streams, at most three requests
+at a time, and send the audio in sentence order. Sentence ends come from `.`, `!`, `?` and the
+per-language `SENTENCE_TERMINALS` data. Barge-in cancels every queued request. The turn flow is in
+`voice-conversation.instructions.md` (Turn pipeline).
 
 The public configuration exposes the selected TTS provider and the logical defaults `openai_tts_voice`
 and `gemini_tts_voice` (`female` or `male`). Actual cloud voice names are resolved only by the backend.

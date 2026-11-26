@@ -42,7 +42,7 @@ class Settings(BaseSettings):
     GEMINI_TTS_FEMALE_VOICE: str = "Kore"
     GEMINI_TTS_MALE_VOICE: str = "Puck"
     GEMINI_TTS_TIMEOUT_SECONDS: float = Field(default=50.0, gt=0, allow_inf_nan=False)
-    STT_PROVIDER: str = "local"  # local | openai
+    STT_PROVIDER: str = "local"  # local | openai | openai-compatible
     STT_BASE_URL: str = "http://whisper:9000"
     OPENAI_STT_MODEL: str = "whisper-1"
     PRONUNCIATION_PROVIDER: str = "llm"  # llm | local

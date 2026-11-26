@@ -19,12 +19,12 @@ export const SPEECH_PAUSE_OPTIONS = [
 export type SpeechPause = (typeof SPEECH_PAUSE_OPTIONS)[number]
 
 const AUTO_REDEMPTION_MS: Record<string, number> = {
-  A1: 1800,
-  A2: 1800,
-  B1: 1500,
-  B2: 1500,
-  C1: 1200,
-  C2: 1200,
+  A1: 1350,
+  A2: 1350,
+  B1: 1150,
+  B2: 1150,
+  C1: 950,
+  C2: 950,
 }
 
 const AUTO_REDEMPTION_FALLBACK_MS = 1500

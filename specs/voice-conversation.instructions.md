@@ -249,20 +249,28 @@ A normal turn:
 6. Builds the prompt from system context and up to the latest 40 messages, including the current
    learner message. Greetings and tool-free fallbacks use the same history limit; the greeting's
    session-start trigger is additional. Older messages are not summarized into the prompt.
-7. Consumes the complete normalized LLM stream, including at most one native memory-tool round.
-8. Splits completed assistant text on full stops, keeping dots between decimal digits and consecutive
-   dot runs (ellipses) inside the same fragment. Fragments without any Unicode letter or number are
-   not sent to TTS; the complete transcript is preserved, including for text-only output.
-9. Synthesizes fragments sequentially, with one retry per failed fragment.
-10. Sends the first successful audio before the complete assistant transcript.
-11. Sends remaining audio in order.
+7. Consumes the normalized LLM stream, including at most one native memory-tool round, and cuts it
+   into sentences while it streams.
+8. Ends a sentence at `.`, `!` or `?`, and at the full-width marks a study language lists in
+   `SENTENCE_TERMINALS` of `backend/app/data/<lang>/sentence_terminals.py` (`ja` and `zh` list
+   `。！？｡`). A dot between decimal digits and a dot run (an ellipsis) stay inside the sentence.
+   A mark at the end of the buffered text waits for the next token. Fragments without any Unicode
+   letter or number are not sent to TTS.
+9. Starts TTS for each finished sentence while the LLM still streams, with at most three requests in
+   flight and one retry per failed fragment. A stream reset after a tool round drops the text and the
+   unsent audio of the discarded stream.
+10. Sends the audio in sentence order, even when a later sentence finishes synthesis first.
+11. Sends the complete assistant transcript once the stream has ended and the first audio has been
+    sent.
 12. Persists the completed user and assistant messages best-effort.
 13. Emits `listening` and `turn_complete`.
 
-TTS does not overlap with LLM generation: synthesis starts after the full visible response is
-collected. If every fragment fails TTS, the complete transcript is sent as a successful text-only
-fallback and the turn is persisted. If sending audio over the socket fails after output begins, the
-turn emits `tts_failed` and is not persisted.
+A barge-in or a failure cancels the LLM stream and every queued or running TTS fragment, and no
+further audio is sent. A sentence whose TTS fails after the retry is skipped. If every fragment fails
+TTS, the complete transcript is sent as a successful text-only fallback and the turn is persisted. If
+sending audio over the socket fails after output begins, the turn emits `tts_failed` and is not
+persisted. The greeting still synthesizes its finished text sentence by sentence and splits on `.`
+and the language's full-width marks.
 
 ## VAD and utterance filtering
 
@@ -283,9 +291,12 @@ successes and failures; asynchronous destruction errors are caught and logged.
 End-of-turn pause is either the user's explicit 1, 2, or 3 seconds or the CEFR-derived automatic
 value:
 
-- A1/A2: 1800 ms.
-- B1/B2: 1500 ms.
-- C1/C2: 1200 ms.
+- Level A1: 1350 ms end-of-speech wait.
+- Level A2: 1350 ms end-of-speech wait.
+- Level B1: 1150 ms end-of-speech wait.
+- Level B2: 1150 ms end-of-speech wait.
+- Level C1: 950 ms end-of-speech wait.
+- Level C2: 950 ms end-of-speech wait.
 - No level: 1500 ms.
 
 Accepted speech also passes duration, RMS, and speech-start checks. The existing duration check uses

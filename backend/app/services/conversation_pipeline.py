@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import importlib
 import json
 import time
 import uuid
@@ -77,6 +78,182 @@ def _build_conversation_system_prompt(
         lesson_practice_context=lesson_practice_context,
         correction_style=correction_style,
     )
+
+
+TTS_MAX_PARALLEL = 3
+STREAM_TERMINALS = ".!?"
+_CLOSERS = "\"'”’)）」』】"
+
+
+def sentence_terminals(target_language: str) -> str:
+    """Return the extra sentence-final marks of a study language, or an empty string."""
+    try:
+        module = importlib.import_module(
+            f"app.data.{get_iso639(target_language)}.sentence_terminals"
+        )
+    except ImportError:
+        return ""
+    return str(module.SENTENCE_TERMINALS)
+
+
+class SentenceSplitter:
+    """Cut streamed text into sentences as soon as each one is finished."""
+
+    def __init__(self, terminals: str = ".") -> None:
+        self._terminals = set(terminals)
+        self._buffer = ""
+
+    def feed(self, text: str) -> list[str]:
+        self._buffer += text
+        return self._drain(final=False)
+
+    def flush(self) -> list[str]:
+        return self._drain(final=True)
+
+    def reset(self) -> None:
+        self._buffer = ""
+
+    def _drain(self, *, final: bool) -> list[str]:
+        buf = self._buffer
+        chunks: list[str] = []
+        start = 0
+        idx = 0
+        while idx < len(buf):
+            if buf[idx] not in self._terminals:
+                idx += 1
+                continue
+            # A mark at the end of the buffer may still become "..." or "3.5".
+            if idx + 1 >= len(buf) and not final:
+                break
+            if buf[idx] == ".":
+                prev = buf[idx - 1] if idx > 0 else ""
+                nxt = buf[idx + 1] if idx + 1 < len(buf) else ""
+                if prev == "." or nxt == "." or (prev.isdecimal() and nxt.isdecimal()):
+                    idx += 1
+                    continue
+            end = idx + 1
+            while end < len(buf) and (buf[end] in self._terminals or buf[end] in _CLOSERS):
+                end += 1
+            if end >= len(buf) and not final:
+                break
+            chunks.append(buf[start:end])
+            start = idx = end
+        if final:
+            chunks.append(buf[start:])
+            start = len(buf)
+        self._buffer = buf[start:]
+        return [c.strip() for c in chunks if any(ch.isalnum() for ch in c)]
+
+
+class _SpeechStreamer:
+    """Synthesize each finished sentence while the LLM streams; send audio in order."""
+
+    def __init__(self, pipeline: ConversationPipeline, ws: WebSocket, turn_id: int) -> None:
+        self._pipeline = pipeline
+        self._ws = ws
+        self._turn_id = turn_id
+        self._splitter = SentenceSplitter(
+            STREAM_TERMINALS + sentence_terminals(pipeline._target_language)
+        )
+        self._queue: asyncio.Queue[asyncio.Task | None] = asyncio.Queue()
+        self._pending: list[asyncio.Task] = []
+        self._slots = asyncio.Semaphore(TTS_MAX_PARALLEL)
+        self._sender = asyncio.create_task(self._send_in_order())
+        self._final_text: str | None = None
+        self.transcript_sent = False
+        self.aborted = False
+        self.chunks_sent = 0
+        self.audio_bytes = 0
+        self.first_enqueue_t0: float | None = None
+
+    def push(self, token: str) -> None:
+        for sentence in self._splitter.feed(token):
+            self._enqueue(sentence)
+
+    def reset(self) -> None:
+        """Drop the text and the unsent audio of a stream the LLM restarted."""
+        self._splitter.reset()
+        for task in self._pending:
+            task.cancel()
+
+    def _enqueue(self, sentence: str) -> None:
+        if self.aborted:
+            return
+        if self.first_enqueue_t0 is None:
+            self.first_enqueue_t0 = time.perf_counter()
+        task = asyncio.create_task(self._synthesize(sentence))
+        self._pending.append(task)
+        self._queue.put_nowait(task)
+
+    async def _synthesize(self, sentence: str) -> bytes:
+        async with self._slots:
+            return await self._pipeline._synthesize_chunk(sentence)
+
+    async def _send_in_order(self) -> None:
+        while (task := await self._queue.get()) is not None:
+            await asyncio.wait({task})
+            if self.aborted or task.cancelled():
+                continue
+            exc = task.exception()
+            if exc is not None:
+                logger.warning(
+                    "[pipeline] TTS sentence failed after retry: turn_id=%s error=%s",
+                    self._turn_id,
+                    self._pipeline._fmt_exc(exc),
+                )
+                continue
+            audio = task.result()
+            if not await self._pipeline._safe_send_bytes(self._ws, audio):
+                logger.warning(
+                    "[pipeline] Audio send failed and remaining chunks are being aborted: "
+                    "turn_id=%s",
+                    self._turn_id,
+                )
+                self.aborted = True
+                for pending in self._pending:
+                    pending.cancel()
+                continue
+            self.chunks_sent += 1
+            self.audio_bytes += len(audio)
+            await self._send_transcript_if_ready()
+
+    async def _send_transcript_if_ready(self) -> None:
+        if self.transcript_sent or self._final_text is None or self.aborted:
+            return
+        self.transcript_sent = True
+        await self._pipeline._send_json(
+            self._ws,
+            {
+                "type": "transcript",
+                "role": "assistant",
+                "text": self._final_text,
+                "final": True,
+                "turn_id": self._turn_id,
+            },
+        )
+
+    async def finish(self, final_text: str) -> None:
+        """Flush the last sentence, wait for all audio, then publish the transcript."""
+        for sentence in self._splitter.flush():
+            self._enqueue(sentence)
+        self._final_text = final_text
+        if self.chunks_sent:
+            await self._send_transcript_if_ready()
+        self._queue.put_nowait(None)
+        await self._sender
+        if self.chunks_sent == 0 and not self.aborted:
+            logger.warning(
+                "[pipeline] No TTS audio produced; publishing text-only transcript: turn_id=%s",
+                self._turn_id,
+            )
+        await self._send_transcript_if_ready()
+
+    async def cancel(self) -> None:
+        """Barge-in or failure: stop the sender and every queued TTS fragment."""
+        tasks = [self._sender, *self._pending]
+        for task in tasks:
+            task.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
 
 
 class ConversationPipeline:
@@ -344,32 +521,10 @@ class ConversationPipeline:
                 await asyncio.sleep(TTS_RETRY_DELAY_SECONDS * attempt)
 
     @staticmethod
-    def _split_tts_sentences(text: str) -> list[str]:
-        """Split on full stops while preserving decimals and ellipses for speech."""
-        chunks: list[str] = []
-        start = 0
-        for idx, char in enumerate(text):
-            if char != ".":
-                continue
-            if (idx > 0 and text[idx - 1] == ".") or (idx + 1 < len(text) and text[idx + 1] == "."):
-                continue
-            if (
-                idx > 0
-                and idx + 1 < len(text)
-                and text[idx - 1].isdecimal()
-                and text[idx + 1].isdecimal()
-            ):
-                continue
-            sentence = text[start : idx + 1].strip()
-            if sentence:
-                chunks.append(sentence)
-            start = idx + 1
-
-        tail = text[start:].strip()
-        if tail:
-            chunks.append(tail)
-
-        return [chunk for chunk in chunks if any(char.isalnum() for char in chunk)]
+    def _split_tts_sentences(text: str, extra_terminals: str = "") -> list[str]:
+        """Split finished text on sentence-final marks, keeping decimals and ellipses whole."""
+        splitter = SentenceSplitter("." + extra_terminals)
+        return [*splitter.feed(text), *splitter.flush()]
 
     async def _synthesize_and_send_response(
         self,
@@ -385,7 +540,9 @@ class ConversationPipeline:
         transcript_sent = False
         send_aborted = False
 
-        for idx, sentence in enumerate(self._split_tts_sentences(text), start=1):
+        for idx, sentence in enumerate(
+            self._split_tts_sentences(text, sentence_terminals(self._target_language)), start=1
+        ):
             try:
                 audio = await self._synthesize_chunk(sentence)
             except asyncio.CancelledError:
@@ -657,6 +814,7 @@ class ConversationPipeline:
         clean_full_response = ""
         memory_updated = False
         llm_stream = None
+        streamer: _SpeechStreamer | None = None
         try:
             await self._send_status(ws, turn_id, "thinking")
 
@@ -699,6 +857,7 @@ class ConversationPipeline:
                     "fallback_messages": fallback_messages,
                 }
             llm_stream = await self.llm.chat(messages, stream=True, **memory_kwargs)
+            streamer = _SpeechStreamer(self, ws, turn_id)
             try:
                 async for chunk in llm_stream:
                     if isinstance(chunk, LLMToolResultEvent):
@@ -706,9 +865,11 @@ class ConversationPipeline:
                         continue
                     if isinstance(chunk, LLMStreamReset):
                         full_response = ""
+                        streamer.reset()
                         continue
                     token = self._stream_text(chunk)
                     full_response += token
+                    streamer.push(token)
             finally:
                 memory_updated = memory_updated or any(
                     result.content.get("saved") is True
@@ -720,25 +881,13 @@ class ConversationPipeline:
 
             clean_full_response = self._extract_speech_text(full_response)
             if clean_full_response:
-                tts_send_t0 = time.perf_counter()
-                (
-                    tts_chunks_sent,
-                    tts_bytes,
-                    assistant_transcript_sent,
-                    send_aborted,
-                ) = await self._synthesize_and_send_response(
-                    ws,
-                    text=clean_full_response,
-                    turn_id=turn_id,
-                    transcript_payload={
-                        "type": "transcript",
-                        "role": "assistant",
-                        "text": clean_full_response,
-                        "final": True,
-                        "turn_id": turn_id,
-                    },
-                )
-                tts_send_ms = (time.perf_counter() - tts_send_t0) * 1000
+                await streamer.finish(clean_full_response)
+                tts_chunks_sent = streamer.chunks_sent
+                tts_bytes = streamer.audio_bytes
+                assistant_transcript_sent = streamer.transcript_sent
+                send_aborted = streamer.aborted
+                if streamer.first_enqueue_t0 is not None:
+                    tts_send_ms = (time.perf_counter() - streamer.first_enqueue_t0) * 1000
                 if send_aborted or not assistant_transcript_sent:
                     logger.warning(
                         "[pipeline] No assistant audio was sent and turn is being aborted: turn_id=%s",
@@ -815,6 +964,8 @@ class ConversationPipeline:
             )
             return
         finally:
+            if streamer is not None:
+                await streamer.cancel()
             if llm_stream is not None:
                 if getattr(llm_stream, "tools_unsupported", False):
                     self._memory_tools_available = False

@@ -57,7 +57,11 @@ from app.routers import (
 from app.routers import config as config_router
 from app.routers import health as health_router
 from app.services.gemini_tts_service import GeminiTTSService
-from app.services.stt_service import OpenAISTTService, WhisperSTTService
+from app.services.stt_service import (
+    OpenAICompatibleSTTService,
+    OpenAISTTService,
+    WhisperSTTService,
+)
 from app.services.tts_service import KokoroTTSService, OpenAITTSService
 
 
@@ -116,6 +120,8 @@ async def lifespan(app: FastAPI):  # noqa: ANN201
             api_key=settings.OPENAI_API_KEY,
             model=settings.OPENAI_STT_MODEL,
         )
+    elif settings.STT_PROVIDER == "openai-compatible":
+        app.state.stt_service = OpenAICompatibleSTTService(settings.STT_BASE_URL)
     else:
         app.state.stt_service = WhisperSTTService(settings.STT_BASE_URL)
 

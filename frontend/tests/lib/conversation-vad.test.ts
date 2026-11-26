@@ -9,15 +9,15 @@ import {
 
 describe('autoRedemptionMs', () => {
   it('gives beginners the longest automatic pause', () => {
-    expect(autoRedemptionMs('A1')).toBe(1800)
-    expect(autoRedemptionMs('A2')).toBe(1800)
+    expect(autoRedemptionMs('A1')).toBe(1350)
+    expect(autoRedemptionMs('A2')).toBe(1350)
   })
 
   it('shortens the automatic pause as the level rises', () => {
-    expect(autoRedemptionMs('B1')).toBe(1500)
-    expect(autoRedemptionMs('B2')).toBe(1500)
-    expect(autoRedemptionMs('C1')).toBe(1200)
-    expect(autoRedemptionMs('C2')).toBe(1200)
+    expect(autoRedemptionMs('B1')).toBe(1150)
+    expect(autoRedemptionMs('B2')).toBe(1150)
+    expect(autoRedemptionMs('C1')).toBe(950)
+    expect(autoRedemptionMs('C2')).toBe(950)
   })
 
   it('falls back when the level is missing or unknown', () => {
@@ -63,16 +63,16 @@ describe('resolveVadRedemptionMs', () => {
   })
 
   it('derives the value from the level when set to automatic', () => {
-    expect(resolveVadRedemptionMs(SPEECH_PAUSE_AUTO, 'A2')).toBe(1800)
-    expect(resolveVadRedemptionMs(SPEECH_PAUSE_AUTO, 'C1')).toBe(1200)
+    expect(resolveVadRedemptionMs(SPEECH_PAUSE_AUTO, 'A2')).toBe(1350)
+    expect(resolveVadRedemptionMs(SPEECH_PAUSE_AUTO, 'C1')).toBe(950)
   })
 
   it('falls back to automatic without a stored setting', () => {
-    expect(resolveVadRedemptionMs(null, 'B1')).toBe(1500)
-    expect(resolveVadRedemptionMs(undefined, 'A1')).toBe(1800)
+    expect(resolveVadRedemptionMs(null, 'B1')).toBe(1150)
+    expect(resolveVadRedemptionMs(undefined, 'A1')).toBe(1350)
   })
 
   it('ignores a stored value that is not offered any more', () => {
-    expect(resolveVadRedemptionMs(700, 'A1')).toBe(1800)
+    expect(resolveVadRedemptionMs(700, 'A1')).toBe(1350)
   })
 })

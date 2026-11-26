@@ -86,3 +86,42 @@ class OpenAISTTService:
             text,
         )
         return text
+
+
+DEFAULT_OPENAI_COMPATIBLE_STT_MODEL = "deepdml/faster-whisper-large-v3-turbo-ct2"
+
+
+class OpenAICompatibleSTTService:
+    """Self-hosted server that serves POST /v1/audio/transcriptions, such as Speaches."""
+
+    def __init__(self, base_url: str, model: str = DEFAULT_OPENAI_COMPATIBLE_STT_MODEL) -> None:
+        self.base_url = base_url.rstrip("/")
+        self.model = model
+
+    async def health(self) -> None:
+        """Raise if the server is unreachable."""
+        async with httpx.AsyncClient() as client:
+            r = await client.get(f"{self.base_url}/health", timeout=5.0)
+            r.raise_for_status()
+
+    async def transcribe(
+        self,
+        audio_bytes: bytes,
+        filename: str = "audio.wav",
+        mime_type: str = "audio/wav",
+        *,
+        language: str,
+    ) -> str:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                f"{self.base_url}/v1/audio/transcriptions",
+                data={"model": self.model, "language": language, "response_format": "json"},
+                files={"file": (filename, audio_bytes, mime_type)},
+                timeout=60.0,
+            )
+            response.raise_for_status()
+            text = response.json().get("text", "").strip()
+            logger.info(
+                "[stt-compatible] Transcribed model=%s lang=%s: %r", self.model, language, text
+            )
+            return text
