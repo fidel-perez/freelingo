@@ -25,8 +25,7 @@ export function mapUser(
     conversation_max_duration: data.conversation_max_duration,
     conversation_inactivity_timeout: data.conversation_inactivity_timeout,
     conversation_speech_pause: data.conversation_speech_pause,
-    correction_style:
-      data.correction_style ?? current?.correction_style ?? 'recast',
+    correction_style: data.correction_style ?? current?.correction_style,
     avatar: 'avatar' in data ? data.avatar : (current?.avatar ?? null),
     is_verified: data.is_verified ?? current?.is_verified ?? true,
     bio: data.bio ?? current?.bio ?? null,
