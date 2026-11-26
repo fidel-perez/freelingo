@@ -21,8 +21,10 @@ applyTo: "docker-compose*.yml, .env.example, .env.dev, backend/Dockerfile, front
   `pronunciation`, so it is off by default. Start it with `docker compose --profile pronunciation up`.
   It listens on port 8000 with no published port, and the backend reaches it through
   `PRONUNCIATION_BASE_URL=http://pronunciation:8000`. The backend image holds no model, and the
-  `pronunciation` image holds no weights either; the service reads them from `PHONEME_MODEL_DIR` or
-  downloads them from `PHONEME_MODEL_URL`. Contract: `speech-services.instructions.md`.
+  `pronunciation` image holds no weights either. The named volume `pronunciation_models` mounts at
+  `/models`, which is `PHONEME_MODEL_DIR`, so downloaded weights persist across restarts. The
+  service downloads `model.onnx` and `tokens.txt` from `PHONEME_MODEL_URL` (empty by default) when
+  the volume lacks them. Contract: `speech-services.instructions.md`.
 
 Ollama is not a Compose service. `OLLAMA_BASE_URL` selects its address; use `.env.example` and
 `backend/app/core/config.py` for the template and backend fallback. Production Compose does not

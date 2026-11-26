@@ -201,3 +201,10 @@ services:
     profiles: ["pronunciation"]
     environment:
       - PYTHONUNBUFFERED=1
+      - PHONEME_MODEL_URL=${PHONEME_MODEL_URL:-}
+      - PHONEME_MODEL_DIR=/models
+    volumes:
+      - pronunciation_models:/models
+
+volumes:
+  pronunciation_models:
