@@ -2409,5 +2409,9 @@
     "retry": "Tekrar dene",
     "back": "Geri",
     "imageFailed": "Resim çizilemedi."
+  },
+  "buttonTurn": {
+    "answered": "Cevap verdim",
+    "tookTooLong": "Çok uzun sürdü"
   }
 }

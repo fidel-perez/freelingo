@@ -2409,5 +2409,9 @@
     "retry": "Încearcă din nou",
     "back": "Înapoi",
     "imageFailed": "Imaginea nu a putut fi desenată."
+  },
+  "buttonTurn": {
+    "answered": "Am răspuns",
+    "tookTooLong": "Mi-a luat prea mult"
   }
 }

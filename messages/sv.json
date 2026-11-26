@@ -2409,5 +2409,9 @@
     "retry": "Försök igen",
     "back": "Tillbaka",
     "imageFailed": "Bilden kunde inte ritas."
+  },
+  "buttonTurn": {
+    "answered": "Jag svarade",
+    "tookTooLong": "Jag tog för lång tid"
   }
 }

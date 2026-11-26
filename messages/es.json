@@ -2409,5 +2409,9 @@
     "retry": "Reintentar",
     "back": "Volver",
     "imageFailed": "No se pudo dibujar la imagen."
+  },
+  "buttonTurn": {
+    "answered": "Ya respondí",
+    "tookTooLong": "Tardé demasiado"
   }
 }

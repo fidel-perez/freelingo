@@ -2409,5 +2409,9 @@
     "retry": "Opnieuw proberen",
     "back": "Terug",
     "imageFailed": "Het plaatje kon niet worden getekend."
+  },
+  "buttonTurn": {
+    "answered": "Ik heb geantwoord",
+    "tookTooLong": "Ik deed er te lang over"
   }
 }

@@ -2409,5 +2409,9 @@
     "retry": "Yritä uudelleen",
     "back": "Takaisin",
     "imageFailed": "Kuvaa ei voitu piirtää."
+  },
+  "buttonTurn": {
+    "answered": "Vastasin",
+    "tookTooLong": "Minulla meni liian kauan"
   }
 }

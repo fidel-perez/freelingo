@@ -2409,5 +2409,9 @@
     "retry": "Try again",
     "back": "Back",
     "imageFailed": "The picture could not be drawn."
+  },
+  "buttonTurn": {
+    "answered": "I answered",
+    "tookTooLong": "I took too long"
   }
 }

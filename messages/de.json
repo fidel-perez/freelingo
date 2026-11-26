@@ -2409,5 +2409,9 @@
     "retry": "Erneut versuchen",
     "back": "Zurück",
     "imageFailed": "Das Bild konnte nicht gezeichnet werden."
+  },
+  "buttonTurn": {
+    "answered": "Ich habe geantwortet",
+    "tookTooLong": "Ich habe zu lange gebraucht"
   }
 }

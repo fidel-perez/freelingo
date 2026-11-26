@@ -2409,5 +2409,9 @@
     "retry": "Pokušaj ponovno",
     "back": "Natrag",
     "imageFailed": "Slika se nije mogla nacrtati."
+  },
+  "buttonTurn": {
+    "answered": "Odgovorio sam",
+    "tookTooLong": "Predugo sam trajao"
   }
 }

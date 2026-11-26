@@ -2409,5 +2409,9 @@
     "retry": "Prøv igen",
     "back": "Tilbage",
     "imageFailed": "Billedet kunne ikke tegnes."
+  },
+  "buttonTurn": {
+    "answered": "Jeg svarede",
+    "tookTooLong": "Jeg brugte for lang tid"
   }
 }

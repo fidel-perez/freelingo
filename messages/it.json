@@ -2409,5 +2409,9 @@
     "retry": "Riprova",
     "back": "Indietro",
     "imageFailed": "Non è stato possibile disegnare l'immagine."
+  },
+  "buttonTurn": {
+    "answered": "Ho risposto",
+    "tookTooLong": "Ci ho messo troppo"
   }
 }
