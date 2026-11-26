@@ -30,6 +30,7 @@ const posted: unknown[] = []
 class FakeWorker {
   onmessage: ((e: MessageEvent) => void) | null = null
   onerror: (() => void) | null = null
+  terminate = vi.fn()
   postMessage(message: unknown) {
     posted.push(message)
     queueMicrotask(() =>
@@ -110,5 +111,30 @@ describe('browser images', () => {
     )
     expect(container.innerHTML).toBe('')
     expect(mockApiFetch).not.toHaveBeenCalled()
+  })
+
+  it('recreates the worker after it fails to load', async () => {
+    vi.resetModules()
+    const created: FailingWorker[] = []
+    class FailingWorker extends FakeWorker {
+      constructor() {
+        super()
+        created.push(this)
+      }
+      postMessage(message: unknown) {
+        if (created.length === 1) {
+          queueMicrotask(() => this.onerror?.())
+        } else super.postMessage(message)
+      }
+    }
+    vi.stubGlobal('Worker', FailingWorker)
+    const { drawImage } = await import('@/lib/browser-images')
+
+    await expect(drawImage('https://w/', 'one')).rejects.toThrow(
+      'image worker failed'
+    )
+    expect(created[0].terminate).toHaveBeenCalled()
+    await expect(drawImage('https://w/', 'two')).resolves.toBeInstanceOf(Blob)
+    expect(created).toHaveLength(2)
   })
 })

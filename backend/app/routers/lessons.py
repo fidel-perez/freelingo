@@ -12,6 +12,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.analytics import enqueue_analytics
+from app.core.config import settings
 from app.core.database import get_db
 from app.core.deps import (
     check_subscription_or_freemium_access,
@@ -375,6 +376,8 @@ async def get_lesson_image_prompt_route(
     db: AsyncSession = Depends(get_db),
 ) -> dict[str, str]:
     lesson = await _get_lesson_for_user(lesson_id, current_user.id, db)
+    if not settings.IMAGE_MODEL_BASE_URL.strip() or not current_user.images_enabled:
+        raise HTTPException(status_code=404, detail="image_generation_disabled")
     return {"prompt": await get_lesson_image_prompt(db, lesson)}
 
 

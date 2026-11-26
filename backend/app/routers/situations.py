@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.core.database import get_db
 from app.core.deps import get_current_user
 from app.core.limiter import limiter
@@ -45,4 +46,6 @@ async def situation_image_prompt(
     situation = SITUATIONS_BY_ID.get(situation_id)
     if plan is None or situation is None:
         raise HTTPException(status_code=404, detail="situation_unavailable")
+    if not settings.IMAGE_MODEL_BASE_URL.strip() or not current_user.images_enabled:
+        raise HTTPException(status_code=404, detail="image_generation_disabled")
     return {"prompt": await get_situation_image_prompt(db, situation)}

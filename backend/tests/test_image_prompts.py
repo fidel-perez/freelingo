@@ -2,6 +2,7 @@
 
 from unittest.mock import AsyncMock, patch
 
+import pytest
 from sqlalchemy import select
 
 from app.core.security import create_access_token, hash_password
@@ -18,6 +19,19 @@ def _llm_result():
     from app.services.image_prompts import ImagePromptResult
 
     return AsyncMock(return_value=ImagePromptResult(prompt=PROMPT))
+
+
+@pytest.fixture
+def _images_configured():
+    with patch("app.routers.lessons.settings.IMAGE_MODEL_BASE_URL", "https://models.example/img"):
+        yield
+
+
+@pytest.fixture
+async def _images_enabled(test_user, db_session):
+    user, _ = test_user
+    user.images_enabled = True
+    await db_session.commit()
 
 
 async def _lesson(db_session, user_id, title="Der Akkusativ"):
@@ -55,6 +69,7 @@ async def _other_user(db_session):
     return user, {"Authorization": f"Bearer {create_access_token(user.id, user.role)}"}
 
 
+@pytest.mark.usefixtures("_images_configured", "_images_enabled")
 async def test_lesson_image_prompt_is_english(client, test_user, db_session):
     user, headers = test_user
     _, lesson = await _lesson(db_session, user.id)
@@ -70,6 +85,7 @@ async def test_lesson_image_prompt_is_english(client, test_user, db_session):
     assert lesson.image_prompt == PROMPT
 
 
+@pytest.mark.usefixtures("_images_configured", "_images_enabled")
 async def test_situation_image_prompt_is_english(client, test_user, db_session):
     user, headers = test_user
     plan, _ = await _lesson(db_session, user.id)
@@ -88,6 +104,7 @@ async def test_situation_image_prompt_is_english(client, test_user, db_session):
     assert row is not None and row.prompt == PROMPT
 
 
+@pytest.mark.usefixtures("_images_configured", "_images_enabled")
 async def test_prompt_cached_on_revisit(client, test_user, db_session):
     user, headers = test_user
     plan, lesson = await _lesson(db_session, user.id)
@@ -102,6 +119,7 @@ async def test_prompt_cached_on_revisit(client, test_user, db_session):
     assert llm.await_count == 2
 
 
+@pytest.mark.usefixtures("_images_configured", "_images_enabled")
 async def test_prompt_requires_owned_plan(client, test_user, db_session):
     user, _ = test_user
     _, lesson = await _lesson(db_session, user.id)
@@ -114,6 +132,7 @@ async def test_prompt_requires_owned_plan(client, test_user, db_session):
     llm.assert_not_awaited()
 
 
+@pytest.mark.usefixtures("_images_configured", "_images_enabled")
 async def test_situation_prompt_requires_owned_plan(client, test_user, db_session):
     user, _ = test_user
     plan, _ = await _lesson(db_session, user.id)
@@ -146,3 +165,22 @@ async def test_settings_update_images_enabled(client, test_user):
         body = (await client.get("/api/auth/me", headers=headers)).json()
     assert body["image_model_base_url"] == "https://models.example/img"
     assert body["image_model_configured"] is True
+
+
+@pytest.mark.usefixtures("_images_configured", "_images_enabled")
+async def test_image_prompt_disabled_makes_no_llm_call(client, test_user, db_session):
+    user, headers = test_user
+    plan, lesson = await _lesson(db_session, user.id)
+    lesson_url = f"/api/lessons/{lesson.id}/image-prompt"
+    situation_url = f"/api/situations/flat_viewing/image-prompt?study_plan_id={plan.id}"
+
+    with patch(LLM, new=_llm_result()) as llm:
+        with patch("app.routers.lessons.settings.IMAGE_MODEL_BASE_URL", ""):
+            assert (await client.get(lesson_url, headers=headers)).status_code == 404
+            assert (await client.get(situation_url, headers=headers)).status_code == 404
+        user.images_enabled = False
+        await db_session.commit()
+        assert (await client.get(lesson_url, headers=headers)).status_code == 404
+        assert (await client.get(situation_url, headers=headers)).status_code == 404
+
+    llm.assert_not_awaited()

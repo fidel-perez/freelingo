@@ -3,6 +3,7 @@
 const IMAGE_CACHE = 'freelingo-images'
 
 let worker: Worker | null = null
+const pending = new Set<(error: Error) => void>()
 let queue: Promise<unknown> = Promise.resolve()
 
 export function browserImagesSupported(): boolean {
@@ -22,11 +23,19 @@ function drawInWorker(baseUrl: string, prompt: string): Promise<Blob> {
   )
   const w = worker
   return new Promise((resolve, reject) => {
-    w.onmessage = (event: MessageEvent<{ ok: boolean; blob?: Blob }>) =>
-      event.data.ok && event.data.blob
-        ? resolve(event.data.blob)
-        : reject(new Error('image generation failed'))
-    w.onerror = () => reject(new Error('image worker failed'))
+    pending.add(reject)
+    w.onmessage = (event: MessageEvent<{ ok: boolean; blob?: Blob }>) => {
+      pending.delete(reject)
+      if (event.data.ok && event.data.blob) resolve(event.data.blob)
+      else reject(new Error('image generation failed'))
+    }
+    w.onerror = () => {
+      const error = new Error('image worker failed')
+      pending.forEach((fail) => fail(error))
+      pending.clear()
+      w.terminate()
+      if (worker === w) worker = null
+    }
     w.postMessage({ baseUrl, prompt })
   })
 }

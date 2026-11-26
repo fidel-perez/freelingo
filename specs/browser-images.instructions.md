@@ -66,7 +66,8 @@ frontend. `docker.instructions.md` owns the propagation rules.
 - `connect-src` is `'self' ws: wss:` when the variable is empty.
 - `connect-src` adds `https:` when the variable is set, because the worker fetches weights from the
   configured host.
-- The middleware matcher covers every path, including `/_next/static`.
+- The middleware matcher covers every page and `/_next/static` and excludes `/api`, because Next
+  truncates request bodies over 10 MB that pass through middleware and speech uploads are larger.
 
 ## Browser worker
 
@@ -83,6 +84,8 @@ frontend. `docker.instructions.md` owns the propagation rules.
   without an error.
 - An empty `IMAGE_MODEL_BASE_URL`, or `images_enabled` set to `false`, requests no prompt and starts
   no worker.
+- The two image-prompt routes return 404 `image_generation_disabled` without calling the LLM when
+  `IMAGE_MODEL_BASE_URL` is empty or the user's `images_enabled` is false. Ownership checks run first.
 
 ## Related specifications
 
