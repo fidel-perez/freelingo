@@ -7,8 +7,8 @@ const src = path.join(__dirname, '../node_modules/onnxruntime-web/dist')
 const dst = path.join(__dirname, '../public/ort-image')
 const files = [
   'ort.webgpu.min.mjs',
-  'ort-wasm-simd-threaded.jsep.mjs',
-  'ort-wasm-simd-threaded.jsep.wasm',
+  'ort-wasm-simd-threaded.asyncify.mjs',
+  'ort-wasm-simd-threaded.asyncify.wasm',
 ]
 
 if (!fs.existsSync(src)) {
