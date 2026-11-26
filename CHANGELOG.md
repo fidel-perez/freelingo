@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.14.16] - Unreleased
+
+### Added
+
+- Add a per-plan mistake log fed by tutor corrections in chat and voice chat and by evaluated exercise answers. Each mistake creates an SM-2 flashcard in the same study plan, through migration 0062.
+- Add a correction style setting, explicit correction or recast, that the tutor prompts in chat and voice follow. Migration 0063 adds the `correction_style` user column.
+- Add an opt-in `local` pronunciation provider (`PRONUNCIATION_PROVIDER`, `PRONUNCIATION_BASE_URL`, `PHONEME_MODEL_URL`) that scores the learner's recorded audio per phoneme through the new `pronunciation-server` compose profile. Per-language phoneme lexicons live under `backend/app/data/<lang>/`, and lessons show the weakest phonemes.
+- Add opt-in lesson and situation images drawn in the browser on WebGPU from a cached English prompt (`IMAGE_MODEL_BASE_URL`, empty disables), through migration 0064. The frontend gains `onnxruntime-web` and `@huggingface/tokenizers`.
+- Add a button turn voice loop that answers a learner event with no STT or VAD, speaks each LLM sentence while the reply streams, and reads an optional fast text model (`FAST_LLM_BASE_URL`, `FAST_LLM_MODEL`).
+- Add `STT_PROVIDER=openai-compatible` to select a self-hosted OpenAI-compatible speech-to-text server, and start TTS per sentence while the voice loop LLM streams.
+- Add a picture talk practice mode that loops browser-drawn scenes at the plan's level and speaks each tutor line with a native-language voice (`NATIVE_TTS_PROVIDER`, `NATIVE_TTS_BASE_URL`, `NATIVE_TTS_VOICES`). An "I took too long" button steps a hint ladder, and each missed line returns as a flashcard. Migration 0065 adds its tables.
+
 ## [1.14.15] - 2026-11-25
 
 ### Changed
