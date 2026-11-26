@@ -62,7 +62,7 @@ Use the narrowest relevant spec first:
 - Technical SEO and Search Console: `seo.instructions.md`.
 - Platform and languages: `platform.instructions.md`, `target-language.instructions.md`, `multi-language.instructions.md`, `add-target-language.instructions.md`, `add-ui-native-language.instructions.md`.
 - Learning: `study-plan.instructions.md`, `learning-resources.instructions.md`, `grammar-practice.instructions.md`, `situations.instructions.md`, `listening.instructions.md`, `reading.instructions.md`, `games.instructions.md`.
-- Speech and AI: `speech-services.instructions.md`, `voice-conversation.instructions.md`, `memories.instructions.md`, `prompts.instructions.md`, `llm-error-handling.instructions.md`.
+- Speech and AI: `speech-services.instructions.md`, `voice-conversation.instructions.md`, `memories.instructions.md`, `mistake-log.instructions.md`, `prompts.instructions.md`, `llm-error-handling.instructions.md`.
 - Access and community: `subscriptions-freemium.instructions.md`, `feedback.instructions.md`, `reviews.instructions.md`, `whats-new.instructions.md`.
 - Contracts and operations: `database-models.instructions.md`, `services.instructions.md`, `api-endpoints.instructions.md`, `rate-limiting.instructions.md`, `docker.instructions.md`, `umami.instructions.md`.
 - Project maintenance: `dependency-updates.instructions.md`, `testing.instructions.md`, `readme.instructions.md`, `changelog.instructions.md`, `version.md`.

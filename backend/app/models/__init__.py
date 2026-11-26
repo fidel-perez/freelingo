@@ -16,6 +16,7 @@ from app.models.lesson import Exercise, Lesson
 from app.models.listening import ListeningAttempt, ListeningExercise
 from app.models.llm_usage import LLMUsage
 from app.models.memory import Memory
+from app.models.mistake import Mistake
 from app.models.progress import Progress
 from app.models.progress_reward import ProgressReward
 from app.models.reading import ReadingAttempt, ReadingExercise
@@ -51,6 +52,7 @@ __all__ = [
     "ListeningExercise",
     "LLMUsage",
     "Memory",
+    "Mistake",
     "Progress",
     "ProgressReward",
     "ReadingAttempt",

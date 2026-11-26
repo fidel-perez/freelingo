@@ -29,6 +29,11 @@ from app.services.memory_service import (
     execute_save_user_memory,
     get_user_memories,
 )
+from app.services.mistake_service import (
+    LOG_MISTAKE_TOOL_NAME,
+    build_log_mistake_tool,
+    execute_log_mistake,
+)
 from app.services.prompts.common import get_language_prompt_overlay
 from app.services.prompts.tutor import CONVERSATION_START_PROMPT, build_conversation_system_prompt
 from app.services.quota_service import record_session_seconds
@@ -656,6 +661,10 @@ class ConversationPipeline:
                 if self._user_id is None:
                     raise RuntimeError("Memory tool requires an authenticated user")
                 async with db_session() as db_mem:
+                    if call.name == LOG_MISTAKE_TOOL_NAME:
+                        return await execute_log_mistake(
+                            db_mem, call, "voice", study_plan_id=self._study_plan_id
+                        )
                     return await execute_save_user_memory(
                         db_mem,
                         self._user_id,
@@ -678,7 +687,8 @@ class ConversationPipeline:
                 ] + self.history[-CONVERSATION_HISTORY_MESSAGE_LIMIT:]
                 memory_kwargs = {
                     "tools": [
-                        build_save_user_memory_tool(str(self._prompt_args["native_language"]))
+                        build_save_user_memory_tool(str(self._prompt_args["native_language"])),
+                        build_log_mistake_tool(str(self._prompt_args["native_language"])),
                     ],
                     "tool_executor": execute_memory_tool,
                     "fallback_messages": fallback_messages,

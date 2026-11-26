@@ -220,6 +220,10 @@ Do not save facts already present in the supplied memories. Write each memory as
 a concise, self-contained fact in the student's native language ({native_language_name})
 so the student can review it in Settings. Continue the visible response after the tool result and never
 claim the memory was saved when the tool reports an error.
+Mistake log capability: when you correct a sentence the student wrote or said in the
+target language, also call the log_mistake tool once with the student's text, the
+corrected text and a short note in {native_language_name}. Skip it when you do not
+correct anything.
 """
 
 

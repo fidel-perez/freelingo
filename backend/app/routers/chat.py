@@ -44,6 +44,11 @@ from app.services.memory_service import (
     execute_save_user_memory,
     get_user_memories,
 )
+from app.services.mistake_service import (
+    LOG_MISTAKE_TOOL_NAME,
+    build_log_mistake_tool,
+    execute_log_mistake,
+)
 from app.services.progress_rewards import reward_conversation
 from app.services.prompts.common import get_language_prompt_overlay
 from app.services.prompts.tutor import build_tutor_system_prompt
@@ -402,6 +407,10 @@ async def chat(
 
             async def execute_memory_tool(call):
                 async with db_session() as memory_db:
+                    if call.name == LOG_MISTAKE_TOOL_NAME:
+                        return await execute_log_mistake(
+                            memory_db, call, "chat", study_plan_id=study_plan_id
+                        )
                     return await execute_save_user_memory(
                         memory_db,
                         current_user.id,
@@ -413,7 +422,10 @@ async def chat(
             stream = await llm_adapter.chat(
                 messages,
                 stream=True,
-                tools=[build_save_user_memory_tool(native_language_name)],
+                tools=[
+                    build_save_user_memory_tool(native_language_name),
+                    build_log_mistake_tool(native_language_name),
+                ],
                 tool_executor=execute_memory_tool,
                 fallback_messages=fallback_messages,
             )

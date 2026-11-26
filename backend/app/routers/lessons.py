@@ -49,6 +49,7 @@ from app.services.llm_adapter import (
     LLMUnavailableError,
     llm_adapter,
 )
+from app.services.mistake_service import log_mistakes
 from app.services.progress_rewards import reward_plan_completion
 from app.services.progress_service import update_daily_progress, upsert_unit_competency
 from app.utils.lesson_exercises import (
@@ -707,6 +708,16 @@ async def answer_exercise(
 
     exercise.user_answer = data.answer
     exercise.answered_at = datetime.now(UTC).replace(tzinfo=None)
+    await log_mistakes(
+        db,
+        lesson.study_plan_id,
+        [
+            (c["original"], c["corrected"], c.get("explanation", ""))
+            for c in exercise.corrections or []
+        ],
+        "exercise",
+        commit=False,
+    )
     await db.commit()
     await db.refresh(exercise)
 
