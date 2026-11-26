@@ -733,7 +733,7 @@ class ConversationPipeline:
                 },
             )
 
-    def _voice_llm(self) -> object:
+    def _voice_llm(self) -> LLMAdapter:
         """The fast text model of the button turn and picture talk; upstream chat never calls it."""
         if not settings.FAST_LLM_BASE_URL:
             return self.llm
