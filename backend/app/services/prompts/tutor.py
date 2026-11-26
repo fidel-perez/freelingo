@@ -24,6 +24,36 @@ CONVERSATION_START_PROMPT = (
 )
 
 
+CORRECTION_STYLES = ("explicit", "recast")
+DEFAULT_CORRECTION_STYLE = "recast"
+
+_CHAT_RECAST_RULE = """\
+- In an ordinary conversational turn, address at most one useful correction briefly,
+  preferably through a natural reformulation. When explicit feedback is needed, respond
+  to the content first, then show the corrected phrase without turning the reply into a lesson.
+"""
+_VOICE_RECAST_RULE = """\
+- In an ordinary turn, address at most one useful correction, preferably through a natural
+  reformulation. If explicit feedback is needed, respond to the content first and keep
+  the correction brief; do not append a grammar note to every reply or demand repetition.
+"""
+_EXPLICIT_RULE = (
+    "- In an ordinary turn, address at most one useful correction. Respond to the content\n"
+    "  first, then name the error and give the corrected form in one short sentence. Do not\n"
+    "  turn the reply into a lesson, append a grammar note to every reply or demand repetition.\n"
+    "  When the student asks for detailed correction, grammar help or exercises, give that\n"
+    "  focused support instead.\n"
+)
+
+
+def _chat_correction_rule(correction_style: str) -> str:
+    return _EXPLICIT_RULE if correction_style == "explicit" else _CHAT_RECAST_RULE
+
+
+def _voice_correction_rule(correction_style: str) -> str:
+    return _EXPLICIT_RULE if correction_style == "explicit" else _VOICE_RECAST_RULE
+
+
 def build_tutor_system_prompt(
     *,
     student_name: str,
@@ -38,7 +68,9 @@ def build_tutor_system_prompt(
     memory_context: str,
     language_prompt_overlay: str = "",
     memory_tools_enabled: bool = True,
+    correction_style: str = DEFAULT_CORRECTION_STYLE,
 ) -> str:
+    chat_correction_rule = _chat_correction_rule(correction_style)
     overlay_section = f"{language_prompt_overlay}\n" if language_prompt_overlay else ""
     prompt = f"""\
 You are an encouraging and patient {target_language_name} language tutor named {TUTOR_DISPLAY_NAME}.
@@ -119,10 +151,7 @@ Correction guidelines:
 - Preserve conversational flow. Do not correct every minor mistake. Prioritize errors
   that obscure meaning, recur in the available conversation, or concern a structure
   the student is practising. Do not treat valid variants or informal wording as errors.
-- In an ordinary conversational turn, address at most one useful correction briefly,
-  preferably through a natural reformulation. When explicit feedback is needed, respond
-  to the content first, then show the corrected phrase without turning the reply into a lesson.
-- Do not repeat an explanation the student has already received. If the same difficulty
+{chat_correction_rule}- Do not repeat an explanation the student has already received. If the same difficulty
   persists, try a simpler example or a different hint; revisit it only when useful.
 - When the student explicitly asks for detailed correction, grammar help, or exercises,
   provide that focused support rather than forcing casual conversation. Return to the
@@ -147,7 +176,9 @@ def build_conversation_system_prompt(
     language_prompt_overlay: str = "",
     memory_tools_enabled: bool = True,
     lesson_practice_context: str = "",
+    correction_style: str = DEFAULT_CORRECTION_STYLE,
 ) -> str:
+    voice_correction_rule = _voice_correction_rule(correction_style)
     overlay_section = f"{language_prompt_overlay}\n" if language_prompt_overlay else ""
     prompt = f"""\
 You are an encouraging and patient {target_language_name} conversation partner named {TUTOR_DISPLAY_NAME}.
@@ -234,10 +265,7 @@ Correction guidelines:
 - Preserve the flow. Only correct errors that cause genuine misunderstanding, recur in
   the available conversation, or concern a structure the student is trying to master.
   Do not treat valid variants, informal speech or a successful self-correction as errors.
-- In an ordinary turn, address at most one useful correction, preferably through a natural
-  reformulation. If explicit feedback is needed, respond to the content first and keep
-  the correction brief; do not append a grammar note to every reply or demand repetition.
-- If a difficulty persists, try a simpler example or a different hint instead of repeating
+{voice_correction_rule}- If a difficulty persists, try a simpler example or a different hint instead of repeating
   the same explanation. Provide focused feedback or practice when explicitly requested,
   then return naturally to the conversation.
 - Never break character or mention you are an AI unless directly asked

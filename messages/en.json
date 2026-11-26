@@ -767,7 +767,16 @@
     "reviewDeleteMessage": "Do you want to delete your review? This action cannot be undone.",
     "reviewDeleteConfirm": "Delete",
     "reviewDeleted": "Review deleted.",
-    "reviewDeleteError": "We could not delete your review. Please try again."
+    "reviewDeleteError": "We could not delete your review. Please try again.",
+    "correctionStyle": {
+      "title": "Tutor corrections",
+      "recast": "Recast",
+      "recastHint": "The tutor repeats your sentence corrected, without naming the mistake.",
+      "explicit": "Explicit",
+      "explicitHint": "The tutor names the mistake and gives the corrected form in one short sentence.",
+      "save": "Save correction style",
+      "saved": "Correction style saved"
+    }
   },
   "legal": {
     "terms": {

@@ -767,7 +767,16 @@
     "reviewDeleteMessage": "Möchtest du deine Bewertung löschen? Diese Aktion kann nicht rückgängig gemacht werden.",
     "reviewDeleteConfirm": "Löschen",
     "reviewDeleted": "Bewertung gelöscht.",
-    "reviewDeleteError": "Deine Bewertung konnte nicht gelöscht werden. Bitte versuche es erneut."
+    "reviewDeleteError": "Deine Bewertung konnte nicht gelöscht werden. Bitte versuche es erneut.",
+    "correctionStyle": {
+      "title": "Korrekturen des Tutors",
+      "recast": "Umformulierung",
+      "recastHint": "Der Tutor wiederholt deinen Satz korrigiert, ohne den Fehler zu nennen.",
+      "explicit": "Ausdrücklich",
+      "explicitHint": "Der Tutor nennt den Fehler und gibt die richtige Form in einem kurzen Satz an.",
+      "save": "Korrekturstil speichern",
+      "saved": "Korrekturstil gespeichert"
+    }
   },
   "legal": {
     "terms": {

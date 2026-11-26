@@ -767,7 +767,16 @@
     "reviewDeleteMessage": "¿Quieres eliminar tu reseña? Esta acción no se puede deshacer.",
     "reviewDeleteConfirm": "Eliminar",
     "reviewDeleted": "Reseña eliminada.",
-    "reviewDeleteError": "No se pudo eliminar la reseña. Inténtalo de nuevo."
+    "reviewDeleteError": "No se pudo eliminar la reseña. Inténtalo de nuevo.",
+    "correctionStyle": {
+      "title": "Correcciones del tutor",
+      "recast": "Reformulación",
+      "recastHint": "El tutor repite tu frase corregida, sin nombrar el error.",
+      "explicit": "Explícita",
+      "explicitHint": "El tutor nombra el error y da la forma correcta en una frase corta.",
+      "save": "Guardar estilo de corrección",
+      "saved": "Estilo de corrección guardado"
+    }
   },
   "legal": {
     "terms": {

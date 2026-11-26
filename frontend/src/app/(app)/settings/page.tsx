@@ -20,6 +20,7 @@ import { useLogout } from '@/hooks/useLogout'
 import { useBillingPortal } from '@/hooks/useBillingPortal'
 import { ProfileSection } from '@/components/settings/ProfileSection'
 import { ConversationSection } from '@/components/settings/ConversationSection'
+import { CorrectionStyleSection } from '@/components/settings/CorrectionStyleSection'
 import { VoiceSection } from '@/components/settings/VoiceSection'
 import { UsageLimitsSection } from '@/components/settings/UsageLimitsSection'
 import { AppearanceSection } from '@/components/settings/AppearanceSection'
@@ -201,6 +202,9 @@ export default function SettingsPage() {
           <div className="grid gap-4 xl:grid-cols-2">
             <ConversationSection title={t('cardConversationTiming')} />
             <VoiceSection title={t('cardTutorVoice')} />
+          </div>
+          <div className="mt-4">
+            <CorrectionStyleSection />
           </div>
         </SettingsPanel>
 

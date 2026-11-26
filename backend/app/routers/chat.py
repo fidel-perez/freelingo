@@ -73,6 +73,7 @@ def _build_tutor_system_prompt(
     memory_context: str,
     language_prompt_overlay: str = "",
     memory_tools_enabled: bool = True,
+    correction_style: str = "recast",
 ) -> str:
     return build_tutor_system_prompt(
         student_name=student_name,
@@ -87,6 +88,7 @@ def _build_tutor_system_prompt(
         memory_context=memory_context,
         language_prompt_overlay=language_prompt_overlay,
         memory_tools_enabled=memory_tools_enabled,
+        correction_style=correction_style,
     )
 
 
@@ -349,6 +351,7 @@ async def chat(
         user_context=user_context,
         memory_context=memory_context,
         language_prompt_overlay=language_prompt_overlay,
+        correction_style=current_user.correction_style,
     )
     fallback_system_prompt = _build_tutor_system_prompt(
         student_name=current_user.display_name,
@@ -363,6 +366,7 @@ async def chat(
         memory_context=memory_context,
         language_prompt_overlay=language_prompt_overlay,
         memory_tools_enabled=False,
+        correction_style=current_user.correction_style,
     )
 
     user_message = ChatHistory(

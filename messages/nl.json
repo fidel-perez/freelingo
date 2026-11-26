@@ -767,7 +767,16 @@
     "reviewDeleteMessage": "Wil je je review verwijderen? Deze actie kan niet ongedaan worden gemaakt.",
     "reviewDeleteConfirm": "Verwijderen",
     "reviewDeleted": "Review verwijderd.",
-    "reviewDeleteError": "Je review kon niet worden verwijderd. Probeer het opnieuw."
+    "reviewDeleteError": "Je review kon niet worden verwijderd. Probeer het opnieuw.",
+    "correctionStyle": {
+      "title": "Correcties van de tutor",
+      "recast": "Herformulering",
+      "recastHint": "De tutor herhaalt je zin verbeterd, zonder de fout te noemen.",
+      "explicit": "Expliciet",
+      "explicitHint": "De tutor noemt de fout en geeft de juiste vorm in één korte zin.",
+      "save": "Correctiestijl opslaan",
+      "saved": "Correctiestijl opgeslagen"
+    }
   },
   "legal": {
     "terms": {

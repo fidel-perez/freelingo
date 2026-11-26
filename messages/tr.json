@@ -767,7 +767,16 @@
     "reviewDeleteMessage": "Yorumunuzu silmek istiyor musunuz? Bu işlem geri alınamaz.",
     "reviewDeleteConfirm": "Sil",
     "reviewDeleted": "Yorum silindi.",
-    "reviewDeleteError": "Yorumunuz silinemedi. Lütfen tekrar deneyin."
+    "reviewDeleteError": "Yorumunuz silinemedi. Lütfen tekrar deneyin.",
+    "correctionStyle": {
+      "title": "Eğitmenin düzeltmeleri",
+      "recast": "Yeniden ifade",
+      "recastHint": "Eğitmen hatayı belirtmeden cümleni düzeltilmiş hâliyle tekrar eder.",
+      "explicit": "Açık",
+      "explicitHint": "Eğitmen hatayı belirtir ve doğru biçimi kısa bir cümleyle verir.",
+      "save": "Düzeltme stilini kaydet",
+      "saved": "Düzeltme stili kaydedildi"
+    }
   },
   "legal": {
     "terms": {

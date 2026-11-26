@@ -767,7 +767,16 @@
     "reviewDeleteMessage": "Queres eliminar a tua avaliação? Esta ação não pode ser desfeita.",
     "reviewDeleteConfirm": "Eliminar",
     "reviewDeleted": "Avaliação eliminada.",
-    "reviewDeleteError": "Não foi possível eliminar a avaliação. Tenta novamente."
+    "reviewDeleteError": "Não foi possível eliminar a avaliação. Tenta novamente.",
+    "correctionStyle": {
+      "title": "Correções do tutor",
+      "recast": "Reformulação",
+      "recastHint": "O tutor repete a tua frase corrigida, sem nomear o erro.",
+      "explicit": "Explícita",
+      "explicitHint": "O tutor nomeia o erro e dá a forma correta numa frase curta.",
+      "save": "Guardar estilo de correção",
+      "saved": "Estilo de correção guardado"
+    }
   },
   "legal": {
     "terms": {

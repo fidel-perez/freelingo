@@ -767,7 +767,16 @@
     "reviewDeleteMessage": "Vill du radera ditt omdöme? Åtgärden kan inte ångras.",
     "reviewDeleteConfirm": "Radera",
     "reviewDeleted": "Omdömet har raderats.",
-    "reviewDeleteError": "Det gick inte att radera omdömet. Försök igen."
+    "reviewDeleteError": "Det gick inte att radera omdömet. Försök igen.",
+    "correctionStyle": {
+      "title": "Handledarens rättelser",
+      "recast": "Omformulering",
+      "recastHint": "Handledaren upprepar din mening rättad, utan att nämna felet.",
+      "explicit": "Uttrycklig",
+      "explicitHint": "Handledaren nämner felet och ger den rätta formen i en kort mening.",
+      "save": "Spara rättelsestil",
+      "saved": "Rättelsestil sparad"
+    }
   },
   "legal": {
     "terms": {

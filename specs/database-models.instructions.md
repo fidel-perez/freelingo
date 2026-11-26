@@ -94,6 +94,7 @@ Registration, authentication, and user preferences.
 - `conversation_max_duration` — integer max voice session duration in seconds. Default comes from `DEFAULT_CONVERSATION_MAX_DURATION`.
 - `conversation_inactivity_timeout` — integer seconds of silence before disconnect. Default comes from `DEFAULT_CONVERSATION_INACTIVITY_TIMEOUT`.
 - `conversation_speech_pause` — integer milliseconds of silence that end a spoken turn in voice conversation. Allowed values are `0`, `1000`, `2000`, and `3000`; `0` (the default) means the window is derived from the learner's CEFR level.
+- `correction_style`: string, `explicit` or `recast`; not null, server default `recast`. Global per user. It selects how the tutor corrects in text chat and voice conversation.
 - `conversation_weekly_sessions` — integer weekly session limit. Default comes from `DEFAULT_CONVERSATION_WEEKLY_SESSIONS`; `0` means unlimited.
 - `conversation_daily_minutes` — integer daily voice limit in minutes. Default comes from `DEFAULT_CONVERSATION_DAILY_MINUTES`; `0` means unlimited.
 - `conversation_weekly_minutes` — integer weekly voice limit in minutes. Default comes from `DEFAULT_CONVERSATION_WEEKLY_MINUTES`; `0` means unlimited.

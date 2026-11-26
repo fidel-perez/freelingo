@@ -368,6 +368,8 @@ async def update_me(
         current_user.conversation_inactivity_timeout = data.conversation_inactivity_timeout
     if data.conversation_speech_pause is not None:
         current_user.conversation_speech_pause = data.conversation_speech_pause
+    if data.correction_style is not None:
+        current_user.correction_style = data.correction_style
     if data.bio is not None:
         current_user.bio = data.bio if data.bio.strip() else None
     if data.learning_goals is not None:

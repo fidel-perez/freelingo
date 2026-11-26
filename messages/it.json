@@ -767,7 +767,16 @@
     "reviewDeleteMessage": "Vuoi eliminare la tua recensione? Questa azione non può essere annullata.",
     "reviewDeleteConfirm": "Elimina",
     "reviewDeleted": "Recensione eliminata.",
-    "reviewDeleteError": "Impossibile eliminare la recensione. Riprova."
+    "reviewDeleteError": "Impossibile eliminare la recensione. Riprova.",
+    "correctionStyle": {
+      "title": "Correzioni del tutor",
+      "recast": "Riformulazione",
+      "recastHint": "Il tutor ripete la tua frase corretta, senza nominare l'errore.",
+      "explicit": "Esplicita",
+      "explicitHint": "Il tutor nomina l'errore e dà la forma corretta in una frase breve.",
+      "save": "Salva stile di correzione",
+      "saved": "Stile di correzione salvato"
+    }
   },
   "legal": {
     "terms": {

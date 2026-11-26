@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import re
 from datetime import UTC, datetime
+from typing import Literal
 
 PASSWORD_PATTERN = re.compile(r"^(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{10,25}$")
 
@@ -161,6 +162,7 @@ class UserResponse(BaseModel):
     conversation_max_duration: int
     conversation_inactivity_timeout: int
     conversation_speech_pause: int = 0
+    correction_style: str = "recast"
     avatar: str | None = None
     bio: str | None = None
     learning_goals: list[str] | None = None
@@ -211,6 +213,7 @@ class UserUpdateRequest(BaseModel):
     conversation_max_duration: int | None = None
     conversation_inactivity_timeout: int | None = None
     conversation_speech_pause: int | None = None
+    correction_style: Literal["explicit", "recast"] | None = None
     bio: str | None = Field(default=None, max_length=500)
     learning_goals: list[str] | None = None
 

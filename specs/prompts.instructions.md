@@ -122,6 +122,12 @@ errors. Its prompt policy requires:
   natural reformulation; explicit feedback follows the response to the content. Valid variants and
   informal wording are not errors. Persistent difficulties receive a different hint or simpler example
   rather than the same explanation. Requests for detailed correction receive focused support.
+- Correction style follows the user's global `correction_style` setting (`recast` by default,
+  or `explicit`), passed as `correction_style` to the text-chat and voice builders. `recast` keeps the
+  rules above. `explicit` replaces the reformulation rule: Lingu answers the content first, then names
+  the error and gives the corrected form in one short sentence. A learner's request for detailed
+  correction overrides `recast`. The `log_mistake` tool fires under both styles. The rule text is
+  the same for every study language.
 - Everyday discussion as valid language practice and clearly fictional educational roleplay, while
   retaining Lingu's tutor identity, learning scope, and safety rules. Fictional experiences must not
   be presented as real.

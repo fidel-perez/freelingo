@@ -767,7 +767,16 @@
     "reviewDeleteMessage": "Voulez-vous supprimer votre avis ? Cette action est irréversible.",
     "reviewDeleteConfirm": "Supprimer",
     "reviewDeleted": "Avis supprimé.",
-    "reviewDeleteError": "Impossible de supprimer votre avis. Veuillez réessayer."
+    "reviewDeleteError": "Impossible de supprimer votre avis. Veuillez réessayer.",
+    "correctionStyle": {
+      "title": "Corrections du tuteur",
+      "recast": "Reformulation",
+      "recastHint": "Le tuteur répète ta phrase corrigée, sans nommer l'erreur.",
+      "explicit": "Explicite",
+      "explicitHint": "Le tuteur nomme l'erreur et donne la forme correcte en une phrase courte.",
+      "save": "Enregistrer le style de correction",
+      "saved": "Style de correction enregistré"
+    }
   },
   "legal": {
     "terms": {

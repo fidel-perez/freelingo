@@ -43,6 +43,13 @@ class User(Base):
         default=0,
         server_default="0",
     )
+    # How the tutor corrects: "explicit" names the error, "recast" repeats the phrase corrected.
+    correction_style: Mapped[str] = mapped_column(
+        String(10),
+        nullable=False,
+        default="recast",
+        server_default="recast",
+    )
     conversation_weekly_sessions: Mapped[int] = mapped_column(
         Integer,
         nullable=False,

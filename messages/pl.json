@@ -767,7 +767,16 @@
     "reviewDeleteMessage": "Czy chcesz usunąć swoją recenzję? Tej czynności nie można cofnąć.",
     "reviewDeleteConfirm": "Usuń",
     "reviewDeleted": "Recenzja usunięta.",
-    "reviewDeleteError": "Nie udało się usunąć recenzji. Spróbuj ponownie."
+    "reviewDeleteError": "Nie udało się usunąć recenzji. Spróbuj ponownie.",
+    "correctionStyle": {
+      "title": "Korekty tutora",
+      "recast": "Powtórzenie poprawione",
+      "recastHint": "Tutor powtarza twoje zdanie w poprawnej formie, bez nazywania błędu.",
+      "explicit": "Wprost",
+      "explicitHint": "Tutor nazywa błąd i podaje poprawną formę w jednym krótkim zdaniu.",
+      "save": "Zapisz styl korekt",
+      "saved": "Styl korekt zapisany"
+    }
   },
   "legal": {
     "terms": {

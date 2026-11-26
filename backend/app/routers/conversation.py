@@ -464,6 +464,7 @@ async def conversation_ws(
         native_language = user.native_language
         student_name = user.display_name
         user_bio = user.bio
+        user_correction_style = user.correction_style
         user_learning_goals = user.learning_goals
         weekly_sessions_limit = user.conversation_weekly_sessions
         daily_minutes_limit = user.conversation_daily_minutes
@@ -649,6 +650,7 @@ async def conversation_ws(
                 )
             ),
             user_agent=websocket.headers.get("user-agent", ""),
+            correction_style=user_correction_style,
         )
         pipeline._redis = redis
         pipeline._freemium_voice = freemium_ok

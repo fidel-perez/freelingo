@@ -63,6 +63,7 @@ def _build_conversation_system_prompt(
     language_prompt_overlay: str = "",
     memory_tools_enabled: bool = True,
     lesson_practice_context: str = "",
+    correction_style: str = "recast",
 ) -> str:
     return build_conversation_system_prompt(
         student_name=student_name,
@@ -74,6 +75,7 @@ def _build_conversation_system_prompt(
         language_prompt_overlay=language_prompt_overlay,
         memory_tools_enabled=memory_tools_enabled,
         lesson_practice_context=lesson_practice_context,
+        correction_style=correction_style,
     )
 
 
@@ -103,6 +105,7 @@ class ConversationPipeline:
         study_plan_id: int | None = None,
         lesson_practice_context: str = "",
         user_agent: str = "",
+        correction_style: str = "recast",
     ) -> None:
         self.llm = llm
         self.tts = tts
@@ -144,6 +147,7 @@ class ConversationPipeline:
             "user_context": user_context,
             "language_prompt_overlay": language_prompt_overlay,
             "lesson_practice_context": lesson_practice_context,
+            "correction_style": correction_style,
         }
         self.system_prompt = _build_conversation_system_prompt(
             **self._prompt_args,
@@ -250,6 +254,7 @@ class ConversationPipeline:
                     self._prompt_args["native_language"] = get_native_language_name(
                         user.native_language
                     )
+                    self._prompt_args["correction_style"] = user.correction_style
             self._memory_context = build_memory_context(memories)
             self.system_prompt = _build_conversation_system_prompt(
                 **self._prompt_args,

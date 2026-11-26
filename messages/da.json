@@ -767,7 +767,16 @@
     "reviewDeleteMessage": "Vil du slette din anmeldelse? Handlingen kan ikke fortrydes.",
     "reviewDeleteConfirm": "Slet",
     "reviewDeleted": "Anmeldelsen er slettet.",
-    "reviewDeleteError": "Vi kunne ikke slette din anmeldelse. Prøv igen."
+    "reviewDeleteError": "Vi kunne ikke slette din anmeldelse. Prøv igen.",
+    "correctionStyle": {
+      "title": "Tutorens rettelser",
+      "recast": "Omformulering",
+      "recastHint": "Tutoren gentager din sætning rettet, uden at nævne fejlen.",
+      "explicit": "Eksplicit",
+      "explicitHint": "Tutoren nævner fejlen og giver den rette form i én kort sætning.",
+      "save": "Gem rettelsesstil",
+      "saved": "Rettelsesstil gemt"
+    }
   },
   "legal": {
     "terms": {

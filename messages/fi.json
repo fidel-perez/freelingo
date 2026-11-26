@@ -767,7 +767,16 @@
     "reviewDeleteMessage": "Haluatko poistaa arvostelusi? Toimintoa ei voi perua.",
     "reviewDeleteConfirm": "Poista",
     "reviewDeleted": "Arvostelu poistettu.",
-    "reviewDeleteError": "Arvosteluasi ei voitu poistaa. Yritä uudelleen."
+    "reviewDeleteError": "Arvosteluasi ei voitu poistaa. Yritä uudelleen.",
+    "correctionStyle": {
+      "title": "Tutorin korjaukset",
+      "recast": "Uudelleenmuotoilu",
+      "recastHint": "Tutori toistaa lauseesi korjattuna mainitsematta virhettä.",
+      "explicit": "Suora",
+      "explicitHint": "Tutori nimeää virheen ja antaa oikean muodon yhdellä lyhyellä lauseella.",
+      "save": "Tallenna korjaustyyli",
+      "saved": "Korjaustyyli tallennettu"
+    }
   },
   "legal": {
     "terms": {

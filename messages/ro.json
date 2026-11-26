@@ -767,7 +767,16 @@
     "reviewDeleteMessage": "Vrei să ștergi recenzia ta? Această acțiune nu poate fi anulată.",
     "reviewDeleteConfirm": "Șterge",
     "reviewDeleted": "Recenzie ștearsă.",
-    "reviewDeleteError": "Nu am putut șterge recenzia. Încearcă din nou."
+    "reviewDeleteError": "Nu am putut șterge recenzia. Încearcă din nou.",
+    "correctionStyle": {
+      "title": "Corectările tutorelui",
+      "recast": "Reformulare",
+      "recastHint": "Tutorele repetă propoziția ta corectată, fără să numească greșeala.",
+      "explicit": "Explicit",
+      "explicitHint": "Tutorele numește greșeala și dă forma corectă într-o propoziție scurtă.",
+      "save": "Salvează stilul de corectare",
+      "saved": "Stil de corectare salvat"
+    }
   },
   "legal": {
     "terms": {

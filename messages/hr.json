@@ -767,7 +767,16 @@
     "reviewDeleteMessage": "Želiš li izbrisati recenziju? Ovu radnju nije moguće poništiti.",
     "reviewDeleteConfirm": "Izbriši",
     "reviewDeleted": "Recenzija je izbrisana.",
-    "reviewDeleteError": "Nismo mogli izbrisati tvoju recenziju. Pokušaj ponovno."
+    "reviewDeleteError": "Nismo mogli izbrisati tvoju recenziju. Pokušaj ponovno.",
+    "correctionStyle": {
+      "title": "Ispravci tutora",
+      "recast": "Preoblikovanje",
+      "recastHint": "Tutor ponavlja tvoju rečenicu ispravljenu, bez imenovanja pogreške.",
+      "explicit": "Izričito",
+      "explicitHint": "Tutor imenuje pogrešku i daje ispravan oblik u jednoj kratkoj rečenici.",
+      "save": "Spremi stil ispravaka",
+      "saved": "Stil ispravaka spremljen"
+    }
   },
   "legal": {
     "terms": {
