@@ -602,7 +602,7 @@ Warmup retains its ordinary voice-only access contract and does not consume a Si
   failure semantics belong to `subscriptions-freemium.instructions.md`.
 - **`transcript`** — User STT result and assistant streaming/final text; turn-associated frames can include `turn_id`.
 - **binary frame** — Payload: native WAV bytes for Gemini or MP3 bytes for local/OpenAI. One synthesized TTS fragment, without additional metadata or control frames.
-- **Picture talk events** — Client sends `{type: "next_scene", scene_id}` and `{type: "no_answer"}`. Server sends `{type: "scene", scene_id, silence_wait_s}`, `{type: "audio_voice", voice: "study" | "native"}` before each audio frame, `{type: "repeat_score", score, model_answer, turn_id}`, and a final `transcript` with `native_lines`. See `picture-talk.instructions.md`.
+- **Picture talk events** — Client sends `{type: "next_scene", scene_id}` and `{type: "button_event", event: "answered" | "took_too_long"}`. Server sends `{type: "scene", scene_id}`, `{type: "audio_voice", voice: "study" | "native"}` before each audio frame, and a final `transcript` with `native_lines`. See `picture-talk.instructions.md`.
 - **`barge_in`** — Payload: `{}`. Description: Current greeting/response was cancelled by new audio; client cancels playback
 - **`interrupted`** — Indicates interruption/cancellation of the active turn.
 - **`memory_updated`** — Confirms a memory save committed during the turn.

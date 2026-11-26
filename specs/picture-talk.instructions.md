@@ -1,8 +1,10 @@
 # Picture Talk
 
-Picture talk is a voice session in which the learner talks with Lingu about a picture the browser
-draws. It reuses the voice pipeline, the browser image worker, the mistake log, the correction style,
-and pronunciation scoring. The contracts of those parts stay in their own specs.
+Picture talk is a spoken session in which the learner talks with Lingu about a picture the browser
+draws. It reuses the voice pipeline's button turn and TTS, the browser image worker, and the mistake
+log. The contracts of those parts stay in their own specs. Picture talk hears no learner audio: the
+learner answers aloud and presses a button, so the correction style and pronunciation scoring do not
+apply.
 
 ## Entry and Gating
 
@@ -24,7 +26,8 @@ and pronunciation scoring. The contracts of those parts stay in their own specs.
 - The backend reads the study-language side of up to 5 flashcards of the plan. Due cards come first,
   then mistake cards, then the earliest review date. A mistake card contributes its corrected study
   text. Suspended cards are skipped.
-- The configured LLM writes a scene through `structured_output` at the plan's `cefr_level`. The scene
+- The `FAST_LLM_MODEL` model at `FAST_LLM_BASE_URL` writes a scene through `structured_output` at the
+  plan's `cefr_level`. When no fast model is set, the configured LLM writes it. The scene
   holds an English image prompt and at most 5 study-language words. The image prompt is English because
   the image model takes English prompts only.
 - An `LLMError` returns 503 `picture_generation_failed`.
@@ -48,18 +51,29 @@ and pronunciation scoring. The contracts of those parts stay in their own specs.
   reference data, not instructions.
 - The voice access check, the chat history writes, and the memory rules run as for every voice session.
   Picture talk consumes no allowance of its own.
-- The tutor opens the session with one or two short sentences about the picture. The server then sends
-  `{type: "scene", scene_id, silence_wait_s}`.
+- Every picture-talk LLM call (opening, hint rung, answered turn, next scene) uses `FAST_LLM_BASE_URL`
+  and `FAST_LLM_MODEL`, and falls back to the configured LLM when they are empty. Upstream chat keeps
+  its own LLM setting.
+- The tutor opens the session with one or two short sentences about the picture, with native lines. The
+  server then sends `{type: "scene", scene_id}`.
 - The client sends `{type: "next_scene", scene_id}` after it fetched a new scene. The pipeline loads
   the scene for the same plan, cancels the current turn, resets the ladder, sends `scene`, and starts
   a tutor turn about the new picture. A scene that is missing or belongs to another plan sends
   `picture_unavailable` and keeps the session.
 - One conversation record holds every picture of the session.
 
-## Spoken-Only Page
+## Speech and Buttons Page
 
-- The picture page has no text input and no conversation starters. The learner answers by voice only.
-- The page shows the picture, the transcript, and a next-picture control while the session is active.
+- The picture page renders no `input`, no `textarea` and no conversation starters. The learner answers
+  aloud and presses the buttons of `button-turn-controls.tsx`.
+- The page opens no microphone and loads no STT or VAD. The browser sends no audio frame, and the
+  server ignores any audio frame it receives in a picture session.
+- The client sends `{type: "button_event", event: "answered" | "took_too_long"}` for each press and
+  `{type: "next_scene", scene_id}` for a next picture.
+- An `answered` press ends the learner's turn. The tutor cannot hear the answer, so it speaks the model
+  answer with its native line and asks the next question. The press logs no mistake.
+- The page shows the picture, the transcript, the two answer buttons and a next-picture control while
+  the session is active.
 
 ## Native Line
 
@@ -71,7 +85,7 @@ and pronunciation scoring. The contracts of those parts stay in their own specs.
   native texts. Saved assistant messages carry the text without the marker.
 - Before each audio frame the server sends `{type: "audio_voice", voice: "study" | "native"}`. The
   client plays the next binary frame with that voice and falls back to `study`.
-- Barge-in cancels queued study and native audio together.
+- Each button press cancels queued study and native audio together, on the server and in the client.
 
 ## Native Voice
 
@@ -117,44 +131,30 @@ and pronunciation scoring. The contracts of those parts stay in their own specs.
 ## Hint Ladder
 
 - Per-level data lives in `backend/app/data/picture_talk_levels.py` and names no language.
-- The wait is the silence, in seconds, after the tutor's audio ends before the client sends
-  `{type: "no_answer"}`. The server sends the wait in each `scene` event.
 - The rungs, in order, are `rephrase`, `two_options`, `first_word`, and `model_answer`.
-- Each CEFR level has its own wait and rungs:
-  - A1: 14 s; `rephrase`, `two_options`, `first_word`, `model_answer`.
-  - A2: 12 s; `rephrase`, `two_options`, `first_word`, `model_answer`.
-  - B1: 10 s; `rephrase`, `first_word`, `model_answer`.
-  - B2: 8 s; `rephrase`, `model_answer`.
-  - C1: 7 s; `rephrase`, `model_answer`.
-  - C2: 6 s; `model_answer`.
+- Each CEFR level has its own rungs:
+  - A1: `rephrase`, `two_options`, `first_word`, `model_answer`.
+  - A2: `rephrase`, `two_options`, `first_word`, `model_answer`.
+  - B1: `rephrase`, `first_word`, `model_answer`.
+  - B2: `rephrase`, `model_answer`.
+  - C1: `rephrase`, `model_answer`.
+  - C2: `model_answer`.
 - An unknown level uses A2.
 - At A1 the tutor mostly narrates and asks yes-or-no or either-or questions whose answer sits in the
   question. Other levels narrate briefly and ask one open question.
-- The client arms the timer when the turn is complete and the audio queue is idle. New audio, a new
-  scene, a learner turn, or session end clears it. One `no_answer` is sent per completed turn.
-- The server ignores `no_answer` while no question is open or a turn is running.
-- A `no_answer`, a reply that the LLM classifies as "I do not know", and a reply in the native
-  language each step the ladder one rung. A study-language answer resets the ladder.
-- After the last rung the ladder resets, and the next turn closes the question and asks a new easy one.
-- The pipeline puts the active rung in the turn context as `<picture_turn>`.
-- The `model_answer` rung replies with exactly two lines: the full answer in the study language and its
-  meaning on a `NATIVE: ` line.
+- Each `took_too_long` event steps the ladder one rung. A new scene or an `answered` press resets it.
+- The pipeline holds the rung of the open question and puts it in the turn context as `<picture_turn>`.
+- The `model_answer` rung starts with two lines: the full answer in the study language and its meaning
+  on a `NATIVE: ` line. The tutor then asks a new easy question with its own native line, and the
+  ladder starts over for that question.
+- There is no silence timer. The client sends nothing when the learner stays quiet.
 
-## Pronunciation and Mistakes
+## Mistakes
 
-- The next learner turn after a model answer is a repeat. The pipeline scores it against the model
-  answer and sends `{type: "repeat_score", score, model_answer, turn_id}`.
-- With `PRONUNCIATION_PROVIDER=local`, the local provider scores the repeat from its audio. If the
-  provider is absent or unavailable, the LLM scores the transcript. If the LLM fails, a string
-  similarity ratio gives the score.
-- The tutor reacts to the score in the next turn and the ladder resets.
-- Each model answer logs one mistake through `log_mistakes` with source `voice`: the native meaning
-  as the front and the model answer as the back. It becomes an SM-2 card, and mistake cards come
-  first when a later scene picks its words.
-- With `PRONUNCIATION_PROVIDER=local`, each free answer is scored against its own transcript. Words
-  below 0.7 join the turn context, up to 5, and the tutor corrects them in the learner's correction
-  style and logs them with `log_mistake`.
-- The correction style and the `log_mistake` tool run as in `mistake-log.instructions.md`.
+- When the ladder ends at a model answer after `took_too_long` presses, the pipeline logs one mistake
+  through `log_mistakes` with source `voice`: the native meaning as the front and the model answer as
+  the back. It becomes an SM-2 card, and mistake cards come first when a later scene picks its words.
+- An `answered` press logs no mistake.
 
 ## Persistence
 
