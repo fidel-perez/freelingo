@@ -149,6 +149,81 @@ async def test_reset_drops_finished_audio_of_discarded_stream() -> None:
     assert [data for kind, data in ws.sent if kind == "bytes"] == [b"B1."]
 
 
+async def test_button_event_cancels_queued_tts() -> None:
+    pipeline = _pipeline()
+    started: list[str] = []
+    cancelled: list[str] = []
+    stream_closed = asyncio.Event()
+
+    async def synth(text, voice, lang):
+        started.append(text)
+        try:
+            await asyncio.sleep(30)
+        except asyncio.CancelledError:
+            cancelled.append(text)
+            raise
+
+    pipeline.tts.synthesize = synth
+
+    async def stream():
+        try:
+            yield _make_chunk("One. Two. ")
+            await asyncio.sleep(30)
+        finally:
+            stream_closed.set()
+
+    pipeline.llm.chat = AsyncMock(return_value=stream())
+    ws = FakeWS()
+    await pipeline.handle_button_event(ws, "answered")
+    for _ in range(100):
+        if len(started) == 2:
+            break
+        await asyncio.sleep(0.01)
+    assert started == ["One.", "Two."]
+
+    pipeline.llm.chat = AsyncMock(return_value=_empty_stream())
+    await pipeline.handle_button_event(ws, "took_too_long")
+    await pipeline.current_task
+
+    assert sorted(cancelled) == ["One.", "Two."]
+    assert stream_closed.is_set()
+    assert [kind for kind, _ in ws.sent].count("bytes") == 0
+
+
+async def _empty_stream():
+    return
+    yield
+
+
+async def test_button_turn_runs_without_stt() -> None:
+    pipeline = _pipeline()
+    pipeline.stt.transcribe = AsyncMock(side_effect=AssertionError("STT must not run"))
+    pipeline.tts.synthesize = AsyncMock(return_value=b"audio")
+
+    async def stream():
+        yield _make_chunk("Well done. Next one.")
+
+    pipeline.llm.chat = AsyncMock(return_value=stream())
+    ws = FakeWS()
+
+    await pipeline.handle_button_event(ws, "took_too_long")
+    await pipeline.current_task
+
+    pipeline.stt.transcribe.assert_not_called()
+    messages = pipeline.llm.chat.call_args.args[0]
+    assert "took too long" in messages[0]["content"]
+    assert messages[-1] == {"role": "user", "content": "[took_too_long]"}
+    types = ws.types()
+    assert "turn_complete" in types
+    assert not any(
+        m.get("role") == "user" for kind, m in ws.sent if kind == "json" and isinstance(m, dict)
+    )
+    assert pipeline.history[-1]["role"] == "assistant"
+
+    await pipeline.handle_button_event(ws, "bogus")
+    assert ws.sent[-1][1]["code"] == "button_event_unknown"
+
+
 def test_sentence_split_without_full_stop() -> None:
     ja = sentence_terminals("ja-JP")
     assert SentenceSplitter(STREAM_TERMINALS + ja).feed("おはよう。元気ですか？はい！") == [

@@ -67,6 +67,19 @@ TTS_RETRY_DELAY_SECONDS = 0.2
 
 CONVERSATION_HISTORY_MESSAGE_LIMIT = 40
 
+BUTTON_EVENT_CONTEXT = {
+    "answered": (
+        "Practice event: the learner said their answer aloud and pressed the button "
+        "'I answered'. You did not hear it. Do not ask them to repeat it. React briefly, "
+        "encourage them and move the practice on."
+    ),
+    "took_too_long": (
+        "Practice event: the learner pressed the button 'I took too long' because they "
+        "could not answer in time. Do not judge. Say the model answer simply and invite "
+        "them to try the next one."
+    ),
+}
+
 WARNING_ADVANCE_SECONDS = 60  # How many seconds before timeout to send the warning
 
 
@@ -881,6 +894,69 @@ class ConversationPipeline:
         await self._scene_event(ws)
         self.current_task = asyncio.create_task(self._picture_tutor_turn(ws, NEXT_SCENE_TRIGGER))
 
+    async def handle_button_event(self, ws: WebSocket, event: object) -> None:
+        """A learner button press starts a tutor turn with no audio, STT or VAD."""
+        if not isinstance(event, str) or event not in BUTTON_EVENT_CONTEXT:
+            await self._send_json(ws, {"type": "error", "code": "button_event_unknown"})
+            return
+        self._reset_inactivity()
+        if self.current_task and not self.current_task.done():
+            await self.cancel_current()
+            await self._send_json(ws, {"type": "barge_in"})
+        self.current_task = asyncio.create_task(self._button_turn(ws, event))
+
+    async def _button_turn(self, ws: WebSocket, event: str) -> None:
+        """Answer a learner event: stream the LLM and speak each finished sentence."""
+        turn_id = self._next_turn_id()
+        messages = [
+            {
+                "role": "system",
+                "content": self.system_prompt + "\n\n" + BUTTON_EVENT_CONTEXT[event],
+            },
+            *self.history[-CONVERSATION_HISTORY_MESSAGE_LIMIT:],
+            {"role": "user", "content": f"[{event}]"},
+        ]
+        streamer: _SpeechStreamer | None = None
+        try:
+            await self._send_status(ws, turn_id, "thinking")
+            llm_stream = await self.llm.chat(messages, stream=True)
+            streamer = _SpeechStreamer(self, ws, turn_id)
+            full_response = ""
+            async for chunk in llm_stream:
+                if isinstance(chunk, LLMToolResultEvent):
+                    continue
+                if isinstance(chunk, LLMStreamReset):
+                    full_response = ""
+                    streamer.reset()
+                    continue
+                token = self._stream_text(chunk)
+                full_response += token
+                streamer.push(token)
+            clean = self._extract_speech_text(full_response)
+            if not clean:
+                await self._send_status(ws, turn_id, "listening")
+                return
+            await streamer.finish(clean)
+            if streamer.aborted or not streamer.transcript_sent:
+                return
+            self.history.append({"role": "assistant", "content": clean})
+            self._pending_saves.append(asyncio.create_task(self._save_message("assistant", clean)))
+            await self._send_status(ws, turn_id, "listening")
+            await self._send_json(ws, {"type": "turn_complete", "turn_id": turn_id})
+        except asyncio.CancelledError:
+            logger.warning("[pipeline] Button turn cancelled for turn_id=%s", turn_id)
+            raise
+        except Exception as exc:
+            logger.error("[pipeline] Button turn failed: %s", exc)
+            await self._send_json(
+                ws,
+                {"type": "error", "code": "llm_failed", "message": str(exc), "turn_id": turn_id},
+            )
+        finally:
+            if streamer is not None:
+                await streamer.cancel()
+            self._reset_inactivity()
+
     async def _greet(self, ws: WebSocket) -> None:
         """Generate and stream an opening greeting from the assistant."""
         if self._picture is not None:
@@ -990,6 +1066,9 @@ class ConversationPipeline:
                         continue
                     if msg.get("type") == "no_answer":
                         await self.handle_no_answer(ws)
+                        continue
+                    if msg.get("type") == "button_event":
+                        await self.handle_button_event(ws, msg.get("event"))
                         continue
                     if msg.get("type") == "next_scene":
                         await self.handle_next_scene(ws, msg.get("scene_id"))

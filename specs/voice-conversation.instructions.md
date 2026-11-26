@@ -265,6 +265,15 @@ A normal turn:
 12. Persists the completed user and assistant messages best-effort.
 13. Emits `listening` and `turn_complete`.
 
+A button turn starts from the WebSocket message `{"type": "button_event", "event": "answered"}` or
+`"took_too_long"`. The learner speaks aloud for practice and presses the button, so the turn carries
+no audio and no transcript, and it runs no STT and no VAD. The event goes to the tutor as practice
+context appended to the system prompt, plus a user message `[answered]` or `[took_too_long]`. It
+offers no hint ladder. The turn then follows steps 7 to 11 and 13, persists only the assistant
+message and adds only the assistant reply to the in-memory context. An unknown event answers the error
+code `button_event_unknown`. A new button event, like new audio, cancels the running turn: the LLM
+stream and every queued or running TTS fragment, and it sends `barge_in`.
+
 A barge-in or a failure cancels the LLM stream and every queued or running TTS fragment, and no
 further audio is sent. A sentence whose TTS fails after the retry is skipped. If every fragment fails
 TTS, the complete transcript is sent as a successful text-only fallback and the turn is persisted. If
