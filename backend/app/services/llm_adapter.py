@@ -618,10 +618,14 @@ class LLMToolStream(LLMStream):
 
 
 class LLMAdapter:
-    def __init__(self):
-        self.provider = settings.LLM_PROVIDER
+    def __init__(self, *, base_url: str = "", model: str = ""):
+        # A base_url selects any OpenAI-compatible /v1 server, used by FAST_LLM_BASE_URL.
+        self.provider = "ollama" if base_url else settings.LLM_PROVIDER
         self._native_tools_available_logged = False
-        if self.provider == "ollama":
+        if base_url:
+            self.client = AsyncOpenAI(base_url=base_url.rstrip("/"), api_key="ollama")
+            self.model = model or settings.OLLAMA_MODEL
+        elif self.provider == "ollama":
             self.client = AsyncOpenAI(
                 base_url=f"{settings.OLLAMA_BASE_URL}/v1",
                 api_key="ollama",

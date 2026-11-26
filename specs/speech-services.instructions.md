@@ -24,7 +24,12 @@ values rather than treating deployment choices as speech contracts.
 TTS configuration:
 
 - `TTS_PROVIDER` selects Kokoro (`local`), OpenAI TTS (`openai`), or Gemini TTS (`gemini`).
-- `TTS_BASE_URL` selects the Kokoro endpoint and `TTS_VOICE` its voice.
+- `TTS_BASE_URL` selects the Kokoro endpoint and `TTS_VOICE` its voice. The `local` provider
+  speaks to any OpenAI-compatible `/v1/audio/speech` server and always sends model `kokoro`.
+  The fork's chosen voice is Qwen3-TTS (Apache-2.0), served on the Mac by `mlx-audio` behind a small
+  front that maps model `kokoro` to Qwen3-TTS and picks the language from the voice. `TTS_VOICE=sohee`
+  speaks Korean and `serena` Spanish. Qwen3-TTS needs no provider class of its own.
+- `TTS_MODEL` is passed through Compose, and no provider reads it while the chosen voice uses `local`.
 - `OPENAI_TTS_MODEL` selects the model used when `TTS_PROVIDER=openai`.
 - `OPENAI_TTS_VOICE` selects the logical default and accepts `female` or `male`.
   When OpenAI is not the selected TTS provider, an incompatible value is normalized to `female`

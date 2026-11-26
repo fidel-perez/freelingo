@@ -58,6 +58,9 @@ services:
       TTS_PROVIDER: ${TTS_PROVIDER:-local}
       TTS_BASE_URL: ${TTS_BASE_URL:-http://kokoro:8880}
       TTS_VOICE: ${TTS_VOICE:-af_heart}
+      TTS_MODEL: ${TTS_MODEL:-}
+      FAST_LLM_BASE_URL: ${FAST_LLM_BASE_URL:-}
+      FAST_LLM_MODEL: ${FAST_LLM_MODEL:-}
       IMAGE_MODEL_BASE_URL: ${IMAGE_MODEL_BASE_URL:-}
       OPENAI_TTS_MODEL: ${OPENAI_TTS_MODEL:-gpt-4o-mini-tts}
       OPENAI_TTS_VOICE: ${OPENAI_TTS_VOICE:-female}

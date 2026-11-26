@@ -285,3 +285,26 @@ async def test_new_stt_provider_selected_by_env(startup_stubs, monkeypatch) -> N
     assert b'name="model"' in body
     assert b"deepdml/faster-whisper-large-v3-turbo-ct2" in body
     assert b'name="language"' in body
+
+
+async def test_button_turn_uses_fast_llm_setting(monkeypatch) -> None:
+    pipeline = _pipeline()
+    pipeline.tts.synthesize = AsyncMock(return_value=b"audio")
+    pipeline.llm.chat = AsyncMock(side_effect=AssertionError("configured LLM must not run"))
+    fast = Mock()
+
+    async def stream():
+        yield _make_chunk("Well done.")
+
+    fast.chat = AsyncMock(return_value=stream())
+    built = Mock(return_value=fast)
+    monkeypatch.setattr("app.services.conversation_pipeline.LLMAdapter", built)
+    monkeypatch.setattr(settings, "FAST_LLM_BASE_URL", "http://fast:8081/v1")
+    monkeypatch.setattr(settings, "FAST_LLM_MODEL", "fast-model")
+
+    await pipeline.handle_button_event(FakeWS(), "answered")
+    await pipeline.current_task
+
+    built.assert_called_once_with(base_url="http://fast:8081/v1", model="fast-model")
+    fast.chat.assert_awaited_once()
+    pipeline.llm.chat.assert_not_called()

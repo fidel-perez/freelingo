@@ -269,7 +269,9 @@ A button turn starts from the WebSocket message `{"type": "button_event", "event
 `"took_too_long"`. The learner speaks aloud for practice and presses the button, so the turn carries
 no audio and no transcript, and it runs no STT and no VAD. The event goes to the tutor as practice
 context appended to the system prompt, plus a user message `[answered]` or `[took_too_long]`. It
-offers no hint ladder. The turn then follows steps 7 to 11 and 13, persists only the assistant
+offers no hint ladder. The turn and picture talk call the LLM at `FAST_LLM_BASE_URL` (an
+OpenAI-compatible server) with model `FAST_LLM_MODEL`, and use the configured LLM when
+`FAST_LLM_BASE_URL` is empty. Chat and the STT turn never read these settings. The turn then follows steps 7 to 11 and 13, persists only the assistant
 message and adds only the assistant reply to the in-memory context. An unknown event answers the error
 code `button_event_unknown`. A new button event, like new audio, cancels the running turn: the LLM
 stream and every queued or running TTS fragment, and it sends `barge_in`.

@@ -9,6 +9,7 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
 from app.core.app_logger import get_logger
+from app.core.config import settings
 from app.data.picture_talk_levels import (
     NATIVE_LINE_MARKER,
     NEXT_SCENE_TRIGGER,
@@ -23,6 +24,7 @@ from app.services.language_helpers import (
 )
 from app.services.learning_analytics import record_lingu_practice
 from app.services.llm_adapter import (
+    LLMAdapter,
     LLMError,
     LLMStream,
     LLMStreamReset,
@@ -378,6 +380,7 @@ class ConversationPipeline:
         native_voice: str = "",
     ) -> None:
         self.llm = llm
+        self._fast_llm: LLMAdapter | None = None
         self.tts = tts
         self.stt = stt
         self._voice = voice
@@ -730,6 +733,16 @@ class ConversationPipeline:
                 },
             )
 
+    def _voice_llm(self) -> object:
+        """The fast text model of the button turn and picture talk; upstream chat never calls it."""
+        if not settings.FAST_LLM_BASE_URL:
+            return self.llm
+        if self._fast_llm is None:
+            self._fast_llm = LLMAdapter(
+                base_url=settings.FAST_LLM_BASE_URL, model=settings.FAST_LLM_MODEL
+            )
+        return self._fast_llm
+
     async def _picture_tutor_turn(self, ws: WebSocket, trigger: str) -> None:
         """A tutor turn with no learner audio: the opening, a new scene or a hint rung."""
         picture = self._picture
@@ -747,7 +760,7 @@ class ConversationPipeline:
         streamer: _SpeechStreamer | None = None
         try:
             await self._send_status(ws, turn_id, "thinking")
-            llm_stream = await self.llm.chat(messages, stream=True)
+            llm_stream = await self._voice_llm().chat(messages, stream=True)
             streamer = _SpeechStreamer(self, ws, turn_id)
             full_response = ""
             async for chunk in llm_stream:
@@ -919,7 +932,7 @@ class ConversationPipeline:
         streamer: _SpeechStreamer | None = None
         try:
             await self._send_status(ws, turn_id, "thinking")
-            llm_stream = await self.llm.chat(messages, stream=True)
+            llm_stream = await self._voice_llm().chat(messages, stream=True)
             streamer = _SpeechStreamer(self, ws, turn_id)
             full_response = ""
             async for chunk in llm_stream:
@@ -1243,7 +1256,8 @@ class ConversationPipeline:
                     "tool_executor": execute_memory_tool,
                     "fallback_messages": fallback_messages,
                 }
-            llm_stream = await self.llm.chat(messages, stream=True, **memory_kwargs)
+            llm = self._voice_llm() if self._picture is not None else self.llm
+            llm_stream = await llm.chat(messages, stream=True, **memory_kwargs)
             streamer = _SpeechStreamer(self, ws, turn_id)
             try:
                 async for chunk in llm_stream:
