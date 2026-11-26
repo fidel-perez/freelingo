@@ -13,8 +13,10 @@ from app.schemas.lessons import PronunciationEvaluation
 from app.services.pronunciation_service import (
     LocalPronunciationProvider,
     PronunciationUnavailable,
+    fold,
     load_phoneme_data,
     score_phonemes,
+    target_phonemes,
 )
 
 TARGET = "안녕하세요"
@@ -220,3 +222,29 @@ async def test_audio_answer_returns_word_scores(client, test_user, db_session, l
     body = response.json()
     assert body["score"] == 1.0
     assert body["words"] == [{"word": TARGET, "score": 1.0, "weak_phonemes": []}]
+
+
+def test_lexicon_word_is_found_despite_trailing_punctuation():
+    data = load_phoneme_data("ko-KR")
+    letter_map_only = SimpleNamespace(
+        LEXICON={}, LETTER_MAP=data.LETTER_MAP, NORMALIZATION=data.NORMALIZATION
+    )
+
+    result = target_phonemes("감사합니다.", data)
+
+    assert result == fold(data.LEXICON["감사합니다"])
+    assert result != target_phonemes("감사합니다", letter_map_only)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("body", [["kamsa"], {"phonemes": 5}, {"phonemes": [1, 2]}, {}])
+async def test_unusable_service_body_raises_unavailable(body):
+    provider = LocalPronunciationProvider("http://pron:8000")
+    response = httpx.Response(
+        200, json=body, request=httpx.Request("POST", "http://pron/v1/phonemes")
+    )
+    with _mock_service(AsyncMock(return_value=response)):
+        with pytest.raises(PronunciationUnavailable):
+            await provider.score(
+                b"a", "a.webm", "audio/webm", target=TARGET, target_language="ko-KR"
+            )

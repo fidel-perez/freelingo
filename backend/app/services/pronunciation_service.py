@@ -101,9 +101,16 @@ def load_phoneme_data(target_language: str):
 
 def target_phonemes(word: str, data) -> list[str]:
     """Folded phonemes of one word: the lexicon entry, else a longest-match letter map."""
-    word = unicodedata.normalize(data.NORMALIZATION, word.lower())
-    if word in data.LEXICON:
-        return fold(data.LEXICON[word])
+    composed = unicodedata.normalize("NFC", word.lower())
+    start, end = 0, len(composed)
+    while start < end and not composed[start].isalnum():
+        start += 1
+    while end > start and not composed[end - 1].isalnum():
+        end -= 1
+    composed = composed[start:end]
+    if composed in data.LEXICON:
+        return fold(data.LEXICON[composed])
+    word = unicodedata.normalize(data.NORMALIZATION, composed)
     keys = sorted(data.LETTER_MAP, key=len, reverse=True)
     out, i = "", 0
     while i < len(word):
@@ -172,8 +179,13 @@ class LocalPronunciationProvider:
                 timeout=60.0,
             )
             response.raise_for_status()
-        phonemes = response.json()["phonemes"]
-        return phonemes if isinstance(phonemes, str) else "".join(phonemes)
+        body = response.json()
+        phonemes = body.get("phonemes") if isinstance(body, dict) else None
+        if isinstance(phonemes, list) and all(isinstance(p, str) for p in phonemes):
+            phonemes = "".join(phonemes)
+        if not isinstance(phonemes, str):
+            raise ValueError("phoneme service returned an unusable body")
+        return phonemes
 
     async def score(
         self,
