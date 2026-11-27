@@ -129,3 +129,29 @@ async def test_typed_turn_skips_stt() -> None:
 
     pipeline.stt.transcribe.assert_not_awaited()
     assert pipeline.llm.chat.call_args.args[0][-1] == {"role": "user", "content": "Bonjour"}
+
+
+def test_strip_reasoning_removes_think_blocks_and_stray_tags() -> None:
+    strip = tutor_tools.strip_reasoning
+    assert strip("<think>pensando</think>Hola") == "Hola"
+    assert strip("Hola</think>") == "Hola"
+    assert strip("</think>\nHola") == "Hola"
+    assert strip("<think>Hola") == "Hola"
+
+
+async def test_translate_and_correct_strip_reasoning_tags(monkeypatch) -> None:
+    monkeypatch.setattr(
+        tutor_tools.llm_adapter, "chat", AsyncMock(return_value="Hola, ¿qué tal?</think>")
+    )
+    assert (
+        await tutor_tools.translate_line("Salut", target_language="fr-FR", native_language="es-ES")
+        == "Hola, ¿qué tal?"
+    )
+    structured = AsyncMock(
+        return_value=MistakeCorrection(corrected="Je suis</think>", note="<think>x</think>Ok")
+    )
+    monkeypatch.setattr(tutor_tools.llm_adapter, "structured_output", structured)
+    result = await tutor_tools.correct_line(
+        "Je es", target_language="fr-FR", native_language="es-ES"
+    )
+    assert result == MistakeCorrection(corrected="Je suis", note="Ok")

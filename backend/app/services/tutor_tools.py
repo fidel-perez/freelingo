@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import re
+
 from pydantic import BaseModel, Field
 
 from app.core.config import settings
@@ -11,6 +13,14 @@ from app.services.llm_adapter import LLMAdapter, llm_adapter
 MAX_LINE_CHARS = 1000
 
 _fast_llm: LLMAdapter | None = None
+
+_THINK_BLOCK = re.compile(r"<think>.*?</think>", re.DOTALL)
+_THINK_TAG = re.compile(r"</?think>")
+
+
+def strip_reasoning(text: str) -> str:
+    """Drop <think> blocks and any stray <think> or </think> tag from model output."""
+    return _THINK_TAG.sub("", _THINK_BLOCK.sub("", text)).strip()
 
 
 def tutor_llm() -> LLMAdapter:
@@ -37,7 +47,7 @@ async def translate_line(text: str, *, target_language: str, native_language: st
     reply = await tutor_llm().chat(
         [{"role": "system", "content": prompt}, {"role": "user", "content": text}]
     )
-    return str(reply).strip()
+    return strip_reasoning(str(reply))
 
 
 async def correct_line(
@@ -55,4 +65,6 @@ async def correct_line(
         MistakeCorrection,
     )
     assert isinstance(result, MistakeCorrection)
-    return result
+    return MistakeCorrection(
+        corrected=strip_reasoning(result.corrected), note=strip_reasoning(result.note)
+    )

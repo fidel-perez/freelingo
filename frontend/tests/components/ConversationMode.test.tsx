@@ -2324,6 +2324,16 @@ describe('ConversationMode listening and typed input', () => {
     expect(screen.queryByText('errorVadInit')).toBeNull()
   })
 
+  it('clears the voice error when the learner turns listening off', () => {
+    localStorage.removeItem('conversation_listening')
+    mocks.vadError = 'ONNX runtime initialization failed'
+    render(<ConversationMode />)
+    fireEvent.click(screen.getByRole('switch', { name: switchName }))
+    expect(screen.getByText('✕ errorVadInit')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('switch', { name: switchName }))
+    expect(screen.queryByText('✕ errorVadInit')).toBeNull()
+  })
+
   it('loads the voice model once the learner turns listening on', () => {
     localStorage.removeItem('conversation_listening')
     render(<ConversationMode />)

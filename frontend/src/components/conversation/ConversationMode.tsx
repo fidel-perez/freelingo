@@ -1589,6 +1589,11 @@ function ConversationModeInner({
       // The choice then lasts for this page view only.
     }
     if (next && !vadOn && !pictureMode) onEnableVad()
+    if (!next && vad.errored) {
+      // The voice error belongs to listening; with it off, the session can start.
+      setErrorMsg(null)
+      if (status === 'error') setStatus('ready')
+    }
   }
 
   function handleStop() {
