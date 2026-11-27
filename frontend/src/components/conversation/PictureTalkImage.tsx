@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useTranslations } from 'next-intl'
 import { browserImagesSupported, drawImage } from '@/lib/browser-images'
 import { useAuthStore } from '@/store/auth'
 
@@ -15,16 +14,16 @@ export function PictureTalkImage({
   prompt: string
   words?: string[]
 }) {
-  const t = useTranslations('pictureTalk')
+  const enabled = useAuthStore((s) => s.user?.images_enabled)
   const baseUrl = useAuthStore((s) => s.user?.image_model_base_url)
-  const supported = browserImagesSupported()
-  const [state, setState] = useState<ImageState>(
-    supported ? 'loading' : 'unsupported'
-  )
+  const canDraw = !!enabled && !!baseUrl && browserImagesSupported()
+  const [drawState, setState] = useState<ImageState>('loading')
   const [src, setSrc] = useState('')
+  // No draw can start: show the words. A server-image branch goes here later.
+  const state: ImageState = canDraw ? drawState : 'unsupported'
 
   useEffect(() => {
-    if (!baseUrl || !supported) return
+    if (!canDraw || !baseUrl) return
     let cancelled = false
     let url = ''
     setState('loading')
@@ -43,7 +42,7 @@ export function PictureTalkImage({
       cancelled = true
       if (url) URL.revokeObjectURL(url)
     }
-  }, [baseUrl, prompt, supported])
+  }, [canDraw, baseUrl, prompt])
 
   return (
     <div
@@ -55,16 +54,11 @@ export function PictureTalkImage({
         // eslint-disable-next-line @next/next/no-img-element
         <img src={src} alt="" className="h-full w-full object-cover" />
       )}
-      {state === 'unsupported' && (
+      {(state === 'unsupported' || state === 'failed') && (
         <p className="text-fl-muted-1 flex h-full flex-wrap content-center items-center justify-center gap-2 p-4 text-center font-sans text-lg">
-          {words.map((word) => (
-            <span key={word}>{word}</span>
+          {words.map((word, index) => (
+            <span key={index}>{word}</span>
           ))}
-        </p>
-      )}
-      {state === 'failed' && (
-        <p role="alert" className="text-fl-muted-2 p-4 font-sans text-sm">
-          {t('imageFailed')}
         </p>
       )}
     </div>

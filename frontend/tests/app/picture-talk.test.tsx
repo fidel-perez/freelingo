@@ -89,10 +89,13 @@ class FakeWorker {
   onmessage: ((e: MessageEvent) => void) | null = null
   onerror: (() => void) | null = null
   terminate = vi.fn()
-  postMessage() {
+  postMessage(job: { prompt: string }) {
     queueMicrotask(() =>
       this.onmessage?.({
-        data: { ok: true, blob: new Blob(['png'], { type: 'image/png' }) },
+        data:
+          job.prompt === 'fail'
+            ? { ok: false }
+            : { ok: true, blob: new Blob(['png'], { type: 'image/png' }) },
       } as MessageEvent)
     )
   }
@@ -246,9 +249,58 @@ describe('picture talk page', () => {
     const { container } = renderPage()
     await screen.findByRole('button', { name: 'start' })
     expect(screen.queryByText('unavailable')).toBeNull()
-    expect(
-      container.querySelector('[data-picture-talk-image]')
-    ).toHaveAttribute('data-image-state', 'unsupported')
+    const slot = container.querySelector('[data-picture-talk-image]')
+    expect(slot).toHaveAttribute('data-image-state', 'unsupported')
+    expect(slot).toHaveTextContent('ab')
+  })
+
+  it('draws nothing and shows the words when images are off', async () => {
+    const worker = vi.fn()
+    vi.stubGlobal('Worker', worker)
+    setUser({
+      images_enabled: false,
+      image_model_base_url: 'https://weights.example/',
+    })
+    const { container } = renderPage()
+    await screen.findByRole('button', { name: 'start' })
+    const slot = container.querySelector('[data-picture-talk-image]')
+    expect(slot).toHaveAttribute('data-image-state', 'unsupported')
+    expect(slot).toHaveTextContent('ab')
+    expect(worker).not.toHaveBeenCalled()
+  })
+
+  it('shows the words, not an empty box, with WebGPU and no weights URL', async () => {
+    setUser({ images_enabled: true })
+    const { container } = renderPage()
+    await screen.findByRole('button', { name: 'start' })
+    const slot = container.querySelector('[data-picture-talk-image]')
+    expect(slot).toHaveAttribute('data-image-state', 'unsupported')
+    expect(slot).toHaveTextContent('ab')
+  })
+
+  it('shows the words when the draw fails, one per word even when repeated', async () => {
+    mocks.apiFetch.mockImplementation(async (url: string) =>
+      url === '/api/picture-talk/scenes'
+        ? {
+            ok: true,
+            json: async () => ({
+              ...scene,
+              image_prompt: 'fail',
+              words: ['a', 'a'],
+            }),
+          }
+        : { ok: true, json: async () => null }
+    )
+    const { container } = renderPage()
+    await screen.findByRole('button', { name: 'start' })
+    await waitFor(() =>
+      expect(
+        container.querySelector('[data-picture-talk-image]')
+      ).toHaveAttribute('data-image-state', 'failed')
+    )
+    const slot = container.querySelector('[data-picture-talk-image]')!
+    expect(slot.querySelectorAll('span')).toHaveLength(2)
+    expect(screen.queryByRole('alert')).toBeNull()
   })
 
   it('plays the native line at the saved rate with the pitch kept', async () => {
