@@ -53,6 +53,7 @@ from app.routers import (
     stt,
     study_plan,
     tts,
+    tutor_tools,
     vocabulary,
 )
 from app.routers import config as config_router
@@ -185,6 +186,7 @@ app.include_router(games.router)
 app.include_router(grammar_practice.router)
 app.include_router(situations.router)
 app.include_router(picture_talk.router)
+app.include_router(tutor_tools.router)
 app.include_router(memories.router)
 app.include_router(phrasebook.router)
 app.include_router(languages.router)

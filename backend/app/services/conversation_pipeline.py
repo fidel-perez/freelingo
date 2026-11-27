@@ -1030,6 +1030,9 @@ class ConversationPipeline:
                     if msg.get("type") == "button_event":
                         await self.handle_button_event(ws, msg.get("event"))
                         continue
+                    if msg.get("type") == "user_text":
+                        await self.handle_text(msg.get("text"), ws)
+                        continue
                     if msg.get("type") == "next_scene":
                         await self.handle_next_scene(ws, msg.get("scene_id"))
                         continue
@@ -1072,18 +1075,32 @@ class ConversationPipeline:
             await self._send_json(ws, {"type": "barge_in"})
         self.current_task = asyncio.create_task(self._process(audio_bytes, ws))
 
-    async def _process(self, audio_bytes: bytes, ws: WebSocket) -> None:
+    async def handle_text(self, text: object, ws: WebSocket) -> None:
+        """A typed learner turn: the same turn as spoken audio, without the STT step."""
+        self._reset_inactivity()
+        if self._picture is not None or not isinstance(text, str) or not text.strip():
+            return  # Picture talk takes buttons only.
+        if self.current_task and not self.current_task.done():
+            await self.cancel_current()
+            await self._send_json(ws, {"type": "barge_in"})
+        self.current_task = asyncio.create_task(self._process(b"", ws, typed_text=text[:1000]))
+
+    async def _process(
+        self, audio_bytes: bytes, ws: WebSocket, *, typed_text: str | None = None
+    ) -> None:
         # Turns are serialized by handle_audio. Only this turn owns additions
         # beyond the snapshot; a cancelled greeting never owns initial context.
         history_start = len(self.history)
         try:
-            await self._process_turn(audio_bytes, ws)
+            await self._process_turn(audio_bytes, ws, typed_text=typed_text)
         finally:
             if len(self.history) > history_start and self.history[-1]["role"] == "user":
                 self.history.pop()
             self._reset_inactivity()
 
-    async def _process_turn(self, audio_bytes: bytes, ws: WebSocket) -> None:
+    async def _process_turn(
+        self, audio_bytes: bytes, ws: WebSocket, *, typed_text: str | None = None
+    ) -> None:
         turn_t0 = time.perf_counter()
         turn_id = self._next_turn_id()
         stt_ms: float | None = None
@@ -1098,11 +1115,15 @@ class ConversationPipeline:
         try:
             await self._send_status(ws, turn_id, "transcribing")
             stt_t0 = time.perf_counter()
-            user_text = await self.stt.transcribe(
-                audio_bytes,
-                "audio.wav",
-                "audio/wav",
-                language=self._stt_language,
+            user_text = (
+                typed_text
+                if typed_text is not None
+                else await self.stt.transcribe(
+                    audio_bytes,
+                    "audio.wav",
+                    "audio/wav",
+                    language=self._stt_language,
+                )
             )
             stt_ms = (time.perf_counter() - stt_t0) * 1000
             logger.info("[pipeline] STT result: %r", user_text)
