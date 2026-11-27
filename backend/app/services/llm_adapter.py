@@ -622,6 +622,9 @@ class LLMAdapter:
         # A base_url selects any OpenAI-compatible /v1 server, used by FAST_LLM_BASE_URL.
         self.provider = "ollama" if base_url else settings.LLM_PROVIDER
         self._native_tools_available_logged = False
+        # A base_url adapter is the fast model: ask a thinking model for no reasoning
+        # so a scene or a short turn answers in seconds instead of tens of seconds.
+        self._reasoning_effort = "none" if base_url else None
         if base_url:
             self.client = AsyncOpenAI(base_url=base_url.rstrip("/"), api_key="ollama")
             self.model = model or settings.OLLAMA_MODEL
@@ -801,6 +804,8 @@ class LLMAdapter:
                 }
                 for tool in tools
             ]
+        if self._reasoning_effort and not tools:
+            extra["reasoning_effort"] = self._reasoning_effort
         client = self.client
         if sdk_max_retries is not None:
             client = client.with_options(max_retries=sdk_max_retries)

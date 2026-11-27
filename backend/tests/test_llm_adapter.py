@@ -1885,3 +1885,17 @@ class TestNativeToolStreaming:
         assert stream.tools_unsupported is False
         assert len(create.call_args_list) == 3
         assert create.call_args_list[2].kwargs["messages"] == fallback_messages
+
+
+async def test_fast_adapter_asks_for_no_reasoning():
+    from types import SimpleNamespace
+    from unittest.mock import AsyncMock
+
+    from app.services.llm_adapter import LLMAdapter
+
+    reply = SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content="{}"))])
+    create = AsyncMock(return_value=reply)
+    adapter = LLMAdapter(base_url="http://fast:11434/v1", model="qwen")
+    adapter.client = SimpleNamespace(chat=SimpleNamespace(completions=SimpleNamespace(create=create)))
+    await adapter._do_chat([{"role": "user", "content": "hi"}])
+    assert create.call_args.kwargs["reasoning_effort"] == "none"
