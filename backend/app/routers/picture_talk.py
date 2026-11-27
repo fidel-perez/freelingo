@@ -1,6 +1,8 @@
+import asyncio
+
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import Response
+from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -16,6 +18,10 @@ from app.services.picture_talk import create_scene
 from app.services.situations import get_situation_plan
 
 logger = get_logger(__name__)
+
+IMAGE_CALL_TIMEOUT = 10.0
+# Strong references keep fire-and-forget prefetch tasks from being collected mid-run.
+_prefetches: set[asyncio.Task[None]] = set()
 
 router = APIRouter(prefix="/api/picture-talk", tags=["picture-talk"])
 
@@ -34,6 +40,23 @@ class SceneResponse(BaseModel):
     study_plan_id: int
     image_prompt: str
     words: list[str]
+
+
+async def _host_image(base: str, prompt: str) -> httpx.Response:
+    """Ask the host image service without waiting: 200 PNG, 202 pending, 500 failed."""
+    async with httpx.AsyncClient() as client:
+        return await client.post(
+            f"{base}/generate",
+            json={"prompt": prompt, "width": 512, "height": 512, "wait": False},
+            timeout=IMAGE_CALL_TIMEOUT,
+        )
+
+
+async def _prefetch_image(base: str, prompt: str) -> None:
+    try:
+        await _host_image(base, prompt)
+    except httpx.HTTPError:
+        logger.warning("[picture-talk] image prefetch failed")
 
 
 @router.post("/scenes", response_model=SceneResponse)
@@ -60,6 +83,11 @@ async def new_scene(
     except LLMError:
         logger.warning("[picture-talk] scene generation failed for plan %s", plan.id)
         raise HTTPException(status_code=503, detail="picture_generation_failed") from None
+    base = settings.IMAGE_SERVER_BASE_URL.strip().rstrip("/")
+    if base and current_user.images_enabled:
+        task = asyncio.create_task(_prefetch_image(base, scene.image_prompt))
+        _prefetches.add(task)
+        task.add_done_callback(_prefetches.discard)
     return SceneResponse(
         id=scene.id,
         study_plan_id=scene.study_plan_id,
@@ -80,14 +108,13 @@ async def scene_image(
     if not base or not current_user.images_enabled:
         raise HTTPException(status_code=404, detail="image_generation_disabled")
     try:
-        async with httpx.AsyncClient() as client:
-            r = await client.post(
-                f"{base}/generate",
-                json={"prompt": data.prompt, "width": 512, "height": 512},
-                timeout=60.0,
-            )
-            r.raise_for_status()
+        r = await _host_image(base, data.prompt)
     except httpx.HTTPError:
         logger.warning("[picture-talk] image server failed")
         raise HTTPException(status_code=503, detail="image_generation_failed") from None
-    return Response(content=r.content, media_type="image/png")
+    if r.status_code == 200:
+        return Response(content=r.content, media_type="image/png")
+    if r.status_code == 202:
+        return JSONResponse(status_code=202, content={"status": "pending"})
+    logger.warning("[picture-talk] image server answered %s", r.status_code)
+    raise HTTPException(status_code=503, detail="image_generation_failed")

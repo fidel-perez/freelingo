@@ -8,6 +8,9 @@ import { useAuthStore } from '@/store/auth'
 type ImageState =
   'loading' | 'done' | 'failed' | 'unsupported' | 'server-loading' | 'server'
 
+const POLL_MS = 3000
+const POLL_LIMIT_MS = 4 * 60 * 1000
+
 /** Draws the scene in the browser, or fetches the Mac-drawn image when the browser cannot; `data-image-state` follows it. */
 export function PictureTalkImage({
   prompt,
@@ -55,26 +58,39 @@ export function PictureTalkImage({
     if (!useServer) return
     let cancelled = false
     let url = ''
+    let timer: ReturnType<typeof setTimeout> | undefined
+    const deadline = Date.now() + POLL_LIMIT_MS
     setServerState('server-loading')
     setSrc('')
-    void apiFetch('/api/picture-talk/image', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt }),
-    })
-      .then(async (res) => {
-        if (!res.ok) throw new Error('image server failed')
-        const blob = await res.blob()
-        if (cancelled) return
-        url = URL.createObjectURL(blob)
-        setSrc(url)
-        setServerState('server')
+    // The host answers 202 while it draws; ask again every POLL_MS until the image or the deadline.
+    const attempt = () => {
+      apiFetch('/api/picture-talk/image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt }),
       })
-      .catch(() => {
-        if (!cancelled) setServerState('failed')
-      })
+        .then(async (res) => {
+          if (cancelled) return
+          if (res.status === 202) {
+            if (Date.now() >= deadline) throw new Error('image timed out')
+            timer = setTimeout(attempt, POLL_MS)
+            return
+          }
+          if (!res.ok) throw new Error('image server failed')
+          const blob = await res.blob()
+          if (cancelled) return
+          url = URL.createObjectURL(blob)
+          setSrc(url)
+          setServerState('server')
+        })
+        .catch(() => {
+          if (!cancelled) setServerState('failed')
+        })
+    }
+    attempt()
     return () => {
       cancelled = true
+      clearTimeout(timer)
       if (url) URL.revokeObjectURL(url)
     }
   }, [useServer, prompt])
@@ -94,7 +110,7 @@ export function PictureTalkImage({
       )}
       {showWords && (
         <p
-          className={`text-fl-muted-1 flex h-full flex-wrap content-center items-center justify-center gap-2 p-4 text-center font-sans text-lg${state === 'server-loading' ? 'animate-pulse' : ''}`}
+          className={`text-fl-muted-1 flex h-full flex-wrap content-center items-center justify-center gap-2 p-4 text-center font-sans text-lg ${state === 'server-loading' ? 'animate-pulse' : ''}`}
         >
           {words.map((word, index) => (
             <span key={index}>{word}</span>

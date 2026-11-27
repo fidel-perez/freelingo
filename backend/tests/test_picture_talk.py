@@ -26,6 +26,7 @@ from app.models.conversation import Conversation
 from app.models.flashcard import Flashcard
 from app.models.mistake import Mistake
 from app.models.picture_talk import PictureTalkScene
+from app.routers import picture_talk as picture_talk_router
 from app.services import picture_talk
 from app.services.conversation_pipeline import ConversationPipeline
 from app.services.native_tts import native_line_enabled, resolve_native_voice
@@ -570,8 +571,78 @@ async def test_server_image_proxies_png(client, db_session, test_user):
     assert response.content == b"\x89PNGdata"
     post = http_cls.return_value.__aenter__.return_value.post
     assert post.call_args.args[0] == "http://host:18850/generate"
-    assert post.call_args.kwargs["json"] == {"prompt": "A cat", "width": 512, "height": 512}
-    assert post.call_args.kwargs["timeout"] == 60.0
+    assert post.call_args.kwargs["json"] == {
+        "prompt": "A cat",
+        "width": 512,
+        "height": 512,
+        "wait": False,
+    }
+    assert post.call_args.kwargs["timeout"] == 10.0
+
+
+async def test_server_image_pending_is_202(client, db_session, test_user):
+    user, headers = test_user
+    user.images_enabled = True
+    await db_session.commit()
+    pending = httpx.Response(
+        202, json={"status": "pending"}, request=httpx.Request("POST", "http://host/generate")
+    )
+
+    with patch(_SERVER, "http://host:18850"), _image_post(AsyncMock(return_value=pending)):
+        response = await client.post(
+            "/api/picture-talk/image", headers=headers, json={"prompt": "A cat"}
+        )
+
+    assert response.status_code == 202
+    assert response.json() == {"status": "pending"}
+
+
+async def test_new_scene_prefetches_image(client, db_session, test_user, plan, monkeypatch):
+    _draft_mock(monkeypatch)
+    user, headers = test_user
+    user.images_enabled = True
+    await db_session.commit()
+
+    with (
+        patch(_SERVER, "http://host:18850"),
+        _image_post(AsyncMock(return_value=_png_response())) as http_cls,
+    ):
+        response = await client.post(
+            "/api/picture-talk/scenes", headers=headers, json={"study_plan_id": plan.id}
+        )
+        await asyncio.gather(*picture_talk_router._prefetches)
+
+    assert response.status_code == 200
+    post = http_cls.return_value.__aenter__.return_value.post
+    assert post.call_args.kwargs["json"]["prompt"] == "A cat on a sofa"
+    assert post.call_args.kwargs["json"]["wait"] is False
+
+
+async def test_new_scene_survives_prefetch_failure(
+    client, db_session, test_user, plan, monkeypatch
+):
+    _draft_mock(monkeypatch)
+    user, headers = test_user
+    user.images_enabled = True
+    await db_session.commit()
+
+    with (
+        patch(_SERVER, "http://host:18850"),
+        _image_post(AsyncMock(side_effect=httpx.ConnectError("down"))),
+    ):
+        response = await client.post(
+            "/api/picture-talk/scenes", headers=headers, json={"study_plan_id": plan.id}
+        )
+        await asyncio.gather(*picture_talk_router._prefetches)
+
+    assert response.status_code == 200
+
+
+async def test_scene_prompt_demands_study_language_words(plan):
+    prompt = picture_talk.build_scene_prompt(plan, [])
+    language = picture_talk.get_language_name(plan.target_language)
+    assert f"Write every word in {language}" in prompt
+    assert f"common everyday {language} words" in prompt
 
 
 async def test_server_image_off_makes_no_call(client, db_session, test_user):

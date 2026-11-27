@@ -28,11 +28,13 @@ const mocks = vi.hoisted(() => ({
   starters: [] as string[],
   push: vi.fn(),
   vadError: false as false | string,
+  vadCalls: 0,
 }))
 
 vi.mock('@ricky0123/vad-react', () => ({
   useMicVAD: (options: Parameters<typeof useMicVAD>[0]) => {
     mocks.options = options
+    mocks.vadCalls += 1
     return {
       loading: false,
       errored: mocks.vadError,
@@ -211,6 +213,7 @@ beforeEach(() => {
   MockWebSocket.instances = []
   mocks.starters = []
   mocks.vadError = false
+  mocks.vadCalls = 0
   mocks.onAudioIdle = null
   mocks.getUserMedia.mockReset().mockResolvedValue(microphone().stream)
   mocks.start.mockImplementation(async () => {
@@ -382,7 +385,8 @@ describe('ConversationMode freemium reconciliation', () => {
       const confirmation = deferred<unknown>()
       mocks.apiFetch.mockImplementation(async (url: string) => ({
         ok: true,
-        json: async () => url === '/api/auth/me' ? confirmation.promise : null,
+        json: async () =>
+          url === '/api/auth/me' ? confirmation.promise : null,
       }))
       render(<ConversationMode trialMode voiceTrialToken="unused-demo" />)
       const ws = await start()
@@ -391,24 +395,34 @@ describe('ConversationMode freemium reconciliation', () => {
           status: { ...status, voice_remaining_seconds: 0 },
           lastFetch: Date.now(),
         })
-        if (ending === 'manual') fireEvent.click(screen.getByRole('button', { name: 'stop' }))
+        if (ending === 'manual')
+          fireEvent.click(screen.getByRole('button', { name: 'stop' }))
         else ws.message({ type: 'session_end', reason: 'max_duration' })
       })
       expect(screen.queryByText('trialCtaDesc')).not.toBeInTheDocument()
-      await act(async () => confirmation.resolve({
-        ...profile, assessment_voice_trial_used: consumed,
-      }))
+      await act(async () =>
+        confirmation.resolve({
+          ...profile,
+          assessment_voice_trial_used: consumed,
+        })
+      )
       if (consumed) {
         expect(screen.getByText('trialCtaDesc')).toBeInTheDocument()
-        expect(screen.queryByRole('button', { name: 'startNew' })).not.toBeInTheDocument()
+        expect(
+          screen.queryByRole('button', { name: 'startNew' })
+        ).not.toBeInTheDocument()
       } else {
         expect(screen.queryByText('trialCtaDesc')).not.toBeInTheDocument()
         expect(screen.queryByTestId('voice-paywall')).not.toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'startNew' })).toBeEnabled()
         await start('startNew')
-        const warmups = mocks.apiFetch.mock.calls.filter(([url]) => url === '/api/conversation/warmup')
+        const warmups = mocks.apiFetch.mock.calls.filter(
+          ([url]) => url === '/api/conversation/warmup'
+        )
         expect(warmups).toHaveLength(2)
-        expect(JSON.parse(warmups[1][1].body)).toEqual({ trial_token: 'unused-demo' })
+        expect(JSON.parse(warmups[1][1].body)).toEqual({
+          trial_token: 'unused-demo',
+        })
       }
     }
   )
@@ -422,8 +436,7 @@ describe('ConversationMode freemium reconciliation', () => {
         username: 'learner',
         role: 'user',
         subscription_status: access === 'subscription' ? 'active' : 'none',
-        freemium_trial_ends_at:
-          access === 'no-card-trial' ? trialEndsAt : null,
+        freemium_trial_ends_at: access === 'no-card-trial' ? trialEndsAt : null,
       }
       const quota = {
         ...status,
@@ -547,7 +560,9 @@ describe('ConversationMode freemium reconciliation', () => {
       expect(
         screen.getByRole('complementary', { name: 'resultTitle' })
       ).toHaveTextContent('exhaustedTitle')
-      const transcriptScroller = screen.getByText('I would like a cup of tea.').closest('.overflow-y-auto')
+      const transcriptScroller = screen
+        .getByText('I would like a cup of tea.')
+        .closest('.overflow-y-auto')
       expect(transcriptScroller).not.toBeNull()
       expect(transcriptScroller).toContainElement(
         screen.getByRole('complementary', { name: 'resultTitle' })
@@ -808,7 +823,9 @@ describe('ConversationMode freemium reconciliation', () => {
         fireEvent.click(screen.getByRole('button', { name: 'start' }))
       )
       expect(screen.getByTestId('voice-paywall')).toBeInTheDocument()
-      act(() => useAuthStore.getState().setUser({ ...user, displayName: 'New' }))
+      act(() =>
+        useAuthStore.getState().setUser({ ...user, displayName: 'New' })
+      )
       expect(screen.queryByRole('button', { name: 'startNew' })).toBeNull()
       act(() => {
         if (recovery === 'balance') {
@@ -865,7 +882,10 @@ describe('ConversationMode freemium reconciliation', () => {
 
 describe('ConversationMode session lifecycle', () => {
   it.each([
-    ['ONNX runtime initialization failed: internal path /vad/model', 'errorVadInit'],
+    [
+      'ONNX runtime initialization failed: internal path /vad/model',
+      'errorVadInit',
+    ],
     ['NotAllowedError: Permission denied by browser', 'errorMic'],
   ])('localizes VAD initialization failure %s', (failure, key) => {
     mocks.vadError = failure
@@ -949,8 +969,7 @@ describe('ConversationMode session lifecycle', () => {
               fireEvent.click(screen.getByRole('button', { name: 'start' }))
             })
             expect(MockWebSocket.instances).toHaveLength(0)
-            if (stage === 'config')
-              expect(configFetch).toHaveBeenCalledTimes(1)
+            if (stage === 'config') expect(configFetch).toHaveBeenCalledTimes(1)
             if (stage === 'warmup') expect(warmupSignal).toBeDefined()
             if (stage === 'vad') expect(mocks.start).toHaveBeenCalledTimes(1)
 
@@ -980,9 +999,7 @@ describe('ConversationMode session lifecycle', () => {
                 new Response(JSON.stringify({ tts_provider: 'gemini' }))
               )
             })
-            await waitFor(() =>
-              expect(MockWebSocket.instances).toHaveLength(1)
-            )
+            await waitFor(() => expect(MockWebSocket.instances).toHaveLength(1))
             const current = MockWebSocket.instances[0]
             act(() => current.onopen?.())
             expect(JSON.parse(current.send.mock.calls[0][0]).token).toBe(
@@ -1157,7 +1174,9 @@ describe('ConversationMode session lifecycle', () => {
       render(
         <ConversationMode
           autoStart
-          initialContext={[{ role: 'user', content: 'Previous account context' }]}
+          initialContext={[
+            { role: 'user', content: 'Previous account context' },
+          ]}
         />
       )
       await waitFor(() => expect(mocks.getUserMedia).toHaveBeenCalledTimes(1))
@@ -1375,9 +1394,12 @@ describe('ConversationMode session lifecycle', () => {
         assessment_voice_trial_used: true,
       }
       useConfigStore.setState({ stripeEnabled: true })
-      useAuthStore.getState().setUser(mapUser({
-        ...profile, assessment_voice_trial_used: false,
-      }))
+      useAuthStore.getState().setUser(
+        mapUser({
+          ...profile,
+          assessment_voice_trial_used: false,
+        })
+      )
       mocks.apiFetch.mockImplementation(async (url: string) => ({
         ok: true,
         json: async () => (url === '/api/auth/me' ? profile : null),
@@ -1395,7 +1417,9 @@ describe('ConversationMode session lifecycle', () => {
       })
       fireEvent.click(screen.getByRole('button', { name: 'stop' }))
       await waitFor(() =>
-        expect(useAuthStore.getState().user?.assessment_voice_trial_used).toBe(true)
+        expect(useAuthStore.getState().user?.assessment_voice_trial_used).toBe(
+          true
+        )
       )
       let finish!: (body: unknown) => void
       const body = new Promise((resolve) => {
@@ -2292,6 +2316,26 @@ describe('ConversationMode listening and typed input', () => {
     expect(screen.getByRole('switch', { name: switchName })).toBeDisabled()
   })
 
+  it('loads no voice model and shows no voice error while listening is off', () => {
+    localStorage.removeItem('conversation_listening')
+    mocks.vadError = 'ONNX runtime initialization failed'
+    render(<ConversationMode />)
+    expect(mocks.vadCalls).toBe(0)
+    expect(screen.queryByText('errorVadInit')).toBeNull()
+  })
+
+  it('loads the voice model once the learner turns listening on', () => {
+    localStorage.removeItem('conversation_listening')
+    render(<ConversationMode />)
+    expect(mocks.vadCalls).toBe(0)
+    fireEvent.click(screen.getByRole('switch', { name: switchName }))
+    expect(mocks.vadCalls).toBeGreaterThan(0)
+    expect(screen.getByRole('switch', { name: switchName })).toHaveAttribute(
+      'aria-checked',
+      'true'
+    )
+  })
+
   it('saves the listening choice and opens the microphone when it is on', async () => {
     localStorage.removeItem('conversation_listening')
     const { unmount } = render(<ConversationMode />)
@@ -2357,8 +2401,8 @@ describe('ConversationMode listening and typed input', () => {
     })
     expect(screen.getAllByRole('button', { name: 'replay' })).toHaveLength(2)
     expect(screen.getAllByRole('button', { name: 'translate' })).toHaveLength(1)
-    expect(
-      screen.getAllByRole('button', { name: 'flagMistake' })
-    ).toHaveLength(1)
+    expect(screen.getAllByRole('button', { name: 'flagMistake' })).toHaveLength(
+      1
+    )
   })
 })

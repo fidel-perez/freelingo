@@ -77,7 +77,8 @@ async def study_side_words(db: AsyncSession, plan: StudyPlan) -> list[str]:
 def build_scene_prompt(plan: StudyPlan, words: list[str]) -> str:
     study_language = get_language_name(plan.target_language)
     listed = (
-        "\n".join(f"- {word}" for word in words) or "- (none yet, choose common everyday words)"
+        "\n".join(f"- {word}" for word in words)
+        or f"- (none yet, choose common everyday {study_language} words)"
     )
     return (
         f"Design one picture for a {study_language} speaking exercise at CEFR level "
@@ -85,7 +86,10 @@ def build_scene_prompt(plan: StudyPlan, words: list[str]) -> str:
         "image_prompt: an ENGLISH prompt for an image model that describes one clear, friendly "
         "everyday scene. Name no text, letters or logos in it.\n"
         f"words: the {study_language} words or short phrases a learner at this level can use to "
-        "describe the scene, taken from the list below when they fit the scene, at most five.\n"
+        "describe the scene, taken from the list below when they fit the scene, at most five. "
+        f"Write every word in {study_language} (its own script), never in English, even for "
+        "common objects such as table, fruit or flower; the English image_prompt is the only "
+        "English text.\n"
         f"Candidate {study_language} words:\n{listed}"
     )
 

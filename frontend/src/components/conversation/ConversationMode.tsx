@@ -248,7 +248,7 @@ const NO_VAD: MicVad = {
   pause: async () => {},
 }
 
-/** Loads the VAD only when `enabled`; the flag never changes while the component is mounted. */
+/** Loads the VAD only when `enabled`; the flag never changes while the component is mounted (the wrapper remounts it). */
 function useOptionalMicVad(
   enabled: boolean,
   options: Parameters<typeof useMicVAD>[0]
@@ -279,7 +279,28 @@ function readListening(): boolean {
   }
 }
 
-export default function ConversationMode({
+type ConversationModeProps = Parameters<typeof ConversationModeInner>[0]
+
+/** Mounts the session with the VAD only while listening is on; turning listening on remounts it once to load the model. */
+export default function ConversationMode(
+  props: Omit<ConversationModeProps, 'vadOn' | 'onEnableVad'>
+) {
+  const [vadOn, setVadOn] = useState(
+    () => props.pictureSceneId === undefined && readListening()
+  )
+  return (
+    <ConversationModeInner
+      key={String(vadOn)}
+      {...props}
+      vadOn={vadOn}
+      onEnableVad={() => setVadOn(true)}
+    />
+  )
+}
+
+function ConversationModeInner({
+  vadOn,
+  onEnableVad,
   initialContext,
   autoStart,
   cefrLevel,
@@ -301,6 +322,8 @@ export default function ConversationMode({
   onSessionActiveChange,
   onClose,
 }: {
+  vadOn: boolean
+  onEnableVad: () => void
   initialContext?: ChatContextItem[]
   autoStart?: boolean
   cefrLevel?: string | null
@@ -567,7 +590,7 @@ export default function ConversationMode({
     if (!stream) throw new Error('No active microphone stream')
     return stream
   }, [])
-  const vad = useOptionalMicVad(!pictureMode, {
+  const vad = useOptionalMicVad(vadOn, {
     baseAssetPath: '/vad/',
     onnxWASMBasePath: '/vad/',
     model: 'v5',
@@ -1565,6 +1588,7 @@ export default function ConversationMode({
     } catch {
       // The choice then lasts for this page view only.
     }
+    if (next && !vadOn && !pictureMode) onEnableVad()
   }
 
   function handleStop() {
