@@ -241,6 +241,16 @@ describe('picture talk page', () => {
     )
   })
 
+  it('talks without WebGPU and shows the words in place of the picture', async () => {
+    stubBrowser(false)
+    const { container } = renderPage()
+    await screen.findByRole('button', { name: 'start' })
+    expect(screen.queryByText('unavailable')).toBeNull()
+    expect(
+      container.querySelector('[data-picture-talk-image]')
+    ).toHaveAttribute('data-image-state', 'unsupported')
+  })
+
   it('plays the native line at the saved rate with the pitch kept', async () => {
     renderPage()
     fireEvent.click(await screen.findByRole('button', { name: 'start' }))
@@ -348,10 +358,10 @@ describe('picture talk entry', () => {
     expect(screen.queryByText('entryStart')).toBeNull()
   })
 
-  it('is hidden without WebGPU or without a weights URL', async () => {
+  it('shows without WebGPU and hides without a weights URL', async () => {
     stubBrowser(false)
     await renderCatalog()
-    expect(screen.queryByText('entryStart')).toBeNull()
+    expect(screen.queryByText('entryStart')).not.toBeNull()
     cleanup()
     stubBrowser(true)
     setUser({ images_enabled: true })

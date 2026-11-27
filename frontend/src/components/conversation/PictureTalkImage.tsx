@@ -2,20 +2,29 @@
 
 import { useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { drawImage } from '@/lib/browser-images'
+import { browserImagesSupported, drawImage } from '@/lib/browser-images'
 import { useAuthStore } from '@/store/auth'
 
-type ImageState = 'loading' | 'done' | 'failed'
+type ImageState = 'loading' | 'done' | 'failed' | 'unsupported'
 
 /** Draws the scene in the browser; `data-image-state` follows the draw. */
-export function PictureTalkImage({ prompt }: { prompt: string }) {
+export function PictureTalkImage({
+  prompt,
+  words = [],
+}: {
+  prompt: string
+  words?: string[]
+}) {
   const t = useTranslations('pictureTalk')
   const baseUrl = useAuthStore((s) => s.user?.image_model_base_url)
-  const [state, setState] = useState<ImageState>('loading')
+  const supported = browserImagesSupported()
+  const [state, setState] = useState<ImageState>(
+    supported ? 'loading' : 'unsupported'
+  )
   const [src, setSrc] = useState('')
 
   useEffect(() => {
-    if (!baseUrl) return
+    if (!baseUrl || !supported) return
     let cancelled = false
     let url = ''
     setState('loading')
@@ -34,7 +43,7 @@ export function PictureTalkImage({ prompt }: { prompt: string }) {
       cancelled = true
       if (url) URL.revokeObjectURL(url)
     }
-  }, [baseUrl, prompt])
+  }, [baseUrl, prompt, supported])
 
   return (
     <div
@@ -45,6 +54,13 @@ export function PictureTalkImage({ prompt }: { prompt: string }) {
       {state === 'done' && (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={src} alt="" className="h-full w-full object-cover" />
+      )}
+      {state === 'unsupported' && (
+        <p className="text-fl-muted-1 flex h-full flex-wrap content-center items-center justify-center gap-2 p-4 text-center font-sans text-lg">
+          {words.map((word) => (
+            <span key={word}>{word}</span>
+          ))}
+        </p>
       )}
       {state === 'failed' && (
         <p role="alert" className="text-fl-muted-2 p-4 font-sans text-sm">

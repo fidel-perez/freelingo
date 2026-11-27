@@ -11,7 +11,9 @@ apply.
 - `/conversation?picture=<study plan id>` opens `ConversationMode` in picture mode, as `?situation=`
   and `?lesson=` do for their sources.
 - The Situations catalog shows the picture entry only when `pictureTalkAvailable(user)` holds:
-  `images_enabled` is true, `image_model_base_url` is set, and the browser supports WebGPU.
+  `images_enabled` is true and `image_model_base_url` is set. WebGPU is not required.
+- The page needs only a signed-in user. A browser without WebGPU still talks about the scene, and the
+  image slot shows the scene's words (`data-image-state="unsupported"`).
 - The entry is a navigation aid. The backend authorizes the scene and the session by plan ownership.
 - The page asks for a scene first. A bad plan id, an unavailable entry, or a failed scene request shows
   an alert with a retry control and a link back to Situations.

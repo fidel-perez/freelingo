@@ -9,7 +9,7 @@
 
 import { BrowserImage } from '@/components/BrowserImage'
 import { PictureTalkImage } from '@/components/conversation/PictureTalkImage'
-import { pictureTalkAvailable, type PictureScene } from '@/lib/picture-talk'
+import { type PictureScene } from '@/lib/picture-talk'
 import { useCallback, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useTranslations } from 'next-intl'
@@ -51,6 +51,7 @@ interface LessonPractice {
   situationStudyPlanId?: number
   pictureSceneId?: number
   pictureImagePrompt?: string
+  pictureWords?: string[]
   requestScene?: () => Promise<number | null>
   title?: string
   cefrLevel: string
@@ -113,7 +114,7 @@ function PictureConversationPage({ planParam }: { planParam: string }) {
   const [attempt, setAttempt] = useState(0)
   const planId = Number(planParam)
   const valid = /^\d+$/.test(planParam) && Number.isSafeInteger(planId)
-  const available = pictureTalkAvailable(user)
+  const available = !!user
 
   const fetchScene = useCallback(
     async (signal?: AbortSignal): Promise<PictureScene> => {
@@ -187,6 +188,7 @@ function PictureConversationPage({ planParam }: { planParam: string }) {
       practice={{
         pictureSceneId: scene.id,
         pictureImagePrompt: scene.image_prompt,
+        pictureWords: scene.words,
         requestScene,
         title: t('entryTitle'),
         cefrLevel: plan?.plan?.cefr_level ?? '',
@@ -673,7 +675,10 @@ function ConversationPageContent({ practice }: { practice?: LessonPractice }) {
             pictureSceneId={practice?.pictureSceneId}
             pictureSlot={
               practice?.pictureImagePrompt ? (
-                <PictureTalkImage prompt={practice.pictureImagePrompt} />
+                <PictureTalkImage
+                  prompt={practice.pictureImagePrompt}
+                  words={practice.pictureWords}
+                />
               ) : undefined
             }
             onRequestScene={practice?.requestScene}
