@@ -42,7 +42,7 @@ describe('PictureTalkImage server polling', () => {
       .mockResolvedValueOnce(pending())
       .mockResolvedValueOnce(png())
     const { container } = render(
-      <PictureTalkImage prompt="p" words={['table']} />
+      <PictureTalkImage prompt="p" sceneId={1} words={['table']} />
     )
     await tick(0)
     expect(state(container)).toBe('server-loading')
@@ -60,7 +60,7 @@ describe('PictureTalkImage server polling', () => {
   it('gives up with the words after 4 minutes of pending', async () => {
     mocks.apiFetch.mockImplementation(() => Promise.resolve(pending()))
     const { container } = render(
-      <PictureTalkImage prompt="p" words={['table']} />
+      <PictureTalkImage prompt="p" sceneId={1} words={['table']} />
     )
     await tick(4 * 60 * 1000 + 3000)
     expect(state(container)).toBe('failed')
@@ -72,25 +72,59 @@ describe('PictureTalkImage server polling', () => {
   it('stops polling on unmount and restarts on a scene change', async () => {
     mocks.apiFetch.mockImplementation(() => Promise.resolve(pending()))
     const { rerender, unmount } = render(
-      <PictureTalkImage prompt="a" words={['table']} />
+      <PictureTalkImage prompt="a" sceneId={1} words={['table']} />
     )
     await tick(0)
-    rerender(<PictureTalkImage prompt="b" words={['table']} />)
+    rerender(<PictureTalkImage prompt="b" sceneId={2} words={['table']} />)
     await tick(0)
     const lastBody = mocks.apiFetch.mock.calls.at(-1)?.[1].body
-    expect(JSON.parse(lastBody)).toEqual({ prompt: 'b' })
+    expect(JSON.parse(lastBody)).toEqual({ scene_id: 2 })
     unmount()
     const calls = mocks.apiFetch.mock.calls.length
     await tick(10_000)
     expect(mocks.apiFetch).toHaveBeenCalledTimes(calls)
   })
 
-  it('shows the words at once when the server fails', async () => {
-    mocks.apiFetch.mockResolvedValue(new Response('{}', { status: 503 }))
+  it('retries a 503 once, then shows the words', async () => {
+    mocks.apiFetch.mockImplementation(() =>
+      Promise.resolve(new Response('{}', { status: 503 }))
+    )
     const { container } = render(
-      <PictureTalkImage prompt="p" words={['table']} />
+      <PictureTalkImage prompt="p" sceneId={1} words={['table']} />
     )
     await tick(0)
+    expect(state(container)).toBe('server-loading')
+    await tick(3000)
+    expect(mocks.apiFetch).toHaveBeenCalledTimes(2)
     expect(state(container)).toBe('failed')
+  })
+
+  it('recovers when the 503 retry succeeds', async () => {
+    mocks.apiFetch
+      .mockResolvedValueOnce(new Response('{}', { status: 503 }))
+      .mockResolvedValueOnce(png())
+    const { container } = render(
+      <PictureTalkImage prompt="p" sceneId={1} words={['table']} />
+    )
+    await tick(3000)
+    expect(state(container)).toBe('server')
+  })
+
+  it('backs off on 429 and keeps polling until the image arrives', async () => {
+    const limited = () => new Response('{}', { status: 429 })
+    mocks.apiFetch
+      .mockResolvedValueOnce(limited())
+      .mockResolvedValueOnce(limited())
+      .mockResolvedValueOnce(png())
+    const { container } = render(
+      <PictureTalkImage prompt="p" sceneId={1} words={['table']} />
+    )
+    await tick(0)
+    expect(state(container)).toBe('server-loading')
+    await tick(10_000)
+    expect(state(container)).toBe('server-loading')
+    await tick(10_000)
+    expect(mocks.apiFetch).toHaveBeenCalledTimes(3)
+    expect(state(container)).toBe('server')
   })
 })

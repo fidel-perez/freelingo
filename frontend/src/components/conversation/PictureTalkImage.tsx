@@ -10,13 +10,16 @@ type ImageState =
 
 const POLL_MS = 3000
 const POLL_LIMIT_MS = 4 * 60 * 1000
+const BACKOFF_MS = 10_000
 
 /** Draws the scene in the browser, or fetches the Mac-drawn image when the browser cannot; `data-image-state` follows it. */
 export function PictureTalkImage({
   prompt,
+  sceneId,
   words = [],
 }: {
   prompt: string
+  sceneId: number
   words?: string[]
 }) {
   const enabled = useAuthStore((s) => s.user?.images_enabled)
@@ -63,18 +66,25 @@ export function PictureTalkImage({
     setServerState('server-loading')
     setSrc('')
     // The host answers 202 while it draws; ask again every POLL_MS until the image or the deadline.
+    let retried503 = false
+    const later = (ms: number) => {
+      if (Date.now() >= deadline) throw new Error('image timed out')
+      timer = setTimeout(attempt, ms)
+    }
     const attempt = () => {
       apiFetch('/api/picture-talk/image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt }),
+        body: JSON.stringify({ scene_id: sceneId }),
       })
         .then(async (res) => {
           if (cancelled) return
-          if (res.status === 202) {
-            if (Date.now() >= deadline) throw new Error('image timed out')
-            timer = setTimeout(attempt, POLL_MS)
-            return
+          if (res.status === 202) return later(POLL_MS)
+          // 429 means the rate limit: back off and keep polling. 503 gets one retry.
+          if (res.status === 429) return later(BACKOFF_MS)
+          if (res.status === 503 && !retried503) {
+            retried503 = true
+            return later(POLL_MS)
           }
           if (!res.ok) throw new Error('image server failed')
           const blob = await res.blob()
@@ -93,7 +103,7 @@ export function PictureTalkImage({
       clearTimeout(timer)
       if (url) URL.revokeObjectURL(url)
     }
-  }, [useServer, prompt])
+  }, [useServer, sceneId])
 
   const showWords =
     state === 'unsupported' || state === 'failed' || state === 'server-loading'

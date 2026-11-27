@@ -548,13 +548,45 @@ def _image_post(mock: AsyncMock):
     return patch(_IMAGE_CLIENT, return_value=client)
 
 
+async def _scene(db_session, plan, prompt="A cat"):
+    scene = PictureTalkScene(study_plan_id=plan.id, image_prompt=prompt, words=["chat"])
+    db_session.add(scene)
+    await db_session.commit()
+    return scene
+
+
+async def test_server_image_refuses_foreign_and_unknown_scene(
+    client, db_session, test_user, admin_user, plan
+):
+    user, headers = test_user
+    user.images_enabled = True
+    await db_session.commit()
+    other = await make_study_plan(
+        db_session, user_id=admin_user[0].id, target_language="fr-FR", cefr_level="A1"
+    )
+    foreign = await _scene(db_session, other, "secret")
+    post = AsyncMock()
+    with patch(_SERVER, "http://host:18850"), _image_post(post):
+        for scene_id in (foreign.id, 999999):
+            response = await client.post(
+                "/api/picture-talk/image", headers=headers, json={"scene_id": scene_id}
+            )
+            assert response.status_code == 404
+        arbitrary = await client.post(
+            "/api/picture-talk/image", headers=headers, json={"prompt": "anything"}
+        )
+    assert arbitrary.status_code == 422
+    post.assert_not_awaited()
+
+
 def _png_response(status: int = 200) -> httpx.Response:
     request = httpx.Request("POST", "http://host/generate")
     return httpx.Response(status, content=b"\x89PNGdata", request=request)
 
 
-async def test_server_image_proxies_png(client, db_session, test_user):
+async def test_server_image_proxies_png(client, db_session, test_user, plan):
     user, headers = test_user
+    scene = await _scene(db_session, plan)
     user.images_enabled = True
     await db_session.commit()
 
@@ -563,7 +595,7 @@ async def test_server_image_proxies_png(client, db_session, test_user):
         _image_post(AsyncMock(return_value=_png_response())) as http_cls,
     ):
         response = await client.post(
-            "/api/picture-talk/image", headers=headers, json={"prompt": "A cat"}
+            "/api/picture-talk/image", headers=headers, json={"scene_id": scene.id}
         )
 
     assert response.status_code == 200
@@ -580,8 +612,9 @@ async def test_server_image_proxies_png(client, db_session, test_user):
     assert post.call_args.kwargs["timeout"] == 10.0
 
 
-async def test_server_image_pending_is_202(client, db_session, test_user):
+async def test_server_image_pending_is_202(client, db_session, test_user, plan):
     user, headers = test_user
+    scene = await _scene(db_session, plan)
     user.images_enabled = True
     await db_session.commit()
     pending = httpx.Response(
@@ -590,7 +623,7 @@ async def test_server_image_pending_is_202(client, db_session, test_user):
 
     with patch(_SERVER, "http://host:18850"), _image_post(AsyncMock(return_value=pending)):
         response = await client.post(
-            "/api/picture-talk/image", headers=headers, json={"prompt": "A cat"}
+            "/api/picture-talk/image", headers=headers, json={"scene_id": scene.id}
         )
 
     assert response.status_code == 202
@@ -645,9 +678,10 @@ async def test_scene_prompt_demands_study_language_words(plan):
     assert f"common everyday {language} words" in prompt
 
 
-async def test_server_image_off_makes_no_call(client, db_session, test_user):
+async def test_server_image_off_makes_no_call(client, db_session, test_user, plan):
     user, headers = test_user
-    body = {"prompt": "A cat"}
+    scene = await _scene(db_session, plan)
+    body = {"scene_id": scene.id}
     user.images_enabled = True
     await db_session.commit()
 
@@ -665,8 +699,9 @@ async def test_server_image_off_makes_no_call(client, db_session, test_user):
     post.assert_not_awaited()
 
 
-async def test_server_image_failure_is_503(client, db_session, test_user):
+async def test_server_image_failure_is_503(client, db_session, test_user, plan):
     user, headers = test_user
+    scene = await _scene(db_session, plan)
     user.images_enabled = True
     await db_session.commit()
 
@@ -678,6 +713,6 @@ async def test_server_image_failure_is_503(client, db_session, test_user):
         for mock in failures:
             with _image_post(mock):
                 response = await client.post(
-                    "/api/picture-talk/image", headers=headers, json={"prompt": "A cat"}
+                    "/api/picture-talk/image", headers=headers, json={"scene_id": scene.id}
                 )
             assert response.status_code == 503

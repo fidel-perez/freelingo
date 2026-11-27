@@ -684,6 +684,7 @@ function ConversationPageContent({ practice }: { practice?: LessonPractice }) {
               practice?.pictureImagePrompt ? (
                 <PictureTalkImage
                   prompt={practice.pictureImagePrompt}
+                  sceneId={practice.pictureSceneId!}
                   words={practice.pictureWords}
                 />
               ) : undefined

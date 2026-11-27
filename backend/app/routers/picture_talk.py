@@ -14,7 +14,7 @@ from app.core.limiter import limiter
 from app.models.conversation import Conversation
 from app.models.user import User
 from app.services.llm_adapter import LLMError
-from app.services.picture_talk import create_scene
+from app.services.picture_talk import create_scene, load_picture_scene
 from app.services.situations import get_situation_plan
 
 logger = get_logger(__name__)
@@ -32,7 +32,7 @@ class SceneRequest(BaseModel):
 
 
 class ImageRequest(BaseModel):
-    prompt: str = Field(min_length=1, max_length=2000)
+    scene_id: int = Field(ge=1, le=2_147_483_647)
 
 
 class SceneResponse(BaseModel):
@@ -97,18 +97,23 @@ async def new_scene(
 
 
 @router.post("/image")
-@limiter.limit("10/minute")
+# The browser polls every 3 s for up to 4 minutes (20/min); 60/min leaves headroom behind a shared proxy IP.
+@limiter.limit("60/minute")
 async def scene_image(
     request: Request,
     data: ImageRequest,
     current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
 ) -> Response:
-    """Proxy the scene prompt to the host image service, for browsers without WebGPU."""
+    """Proxy an owned scene's stored prompt to the host image service, for browsers without WebGPU."""
     base = settings.IMAGE_SERVER_BASE_URL.strip().rstrip("/")
     if not base or not current_user.images_enabled:
         raise HTTPException(status_code=404, detail="image_generation_disabled")
+    picture = await load_picture_scene(db, current_user.id, data.scene_id)
+    if picture is None:
+        raise HTTPException(status_code=404, detail="picture_unavailable")
     try:
-        r = await _host_image(base, data.prompt)
+        r = await _host_image(base, picture.scene.image_prompt)
     except httpx.HTTPError:
         logger.warning("[picture-talk] image server failed")
         raise HTTPException(status_code=503, detail="image_generation_failed") from None

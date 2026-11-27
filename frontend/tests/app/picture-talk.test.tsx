@@ -267,7 +267,7 @@ describe('picture talk page', () => {
       '/api/picture-talk/image',
       expect.objectContaining({
         method: 'POST',
-        body: JSON.stringify({ prompt: scene.image_prompt }),
+        body: JSON.stringify({ scene_id: scene.id }),
       })
     )
     release({ ok: true, blob: async () => new Blob(['png']) })

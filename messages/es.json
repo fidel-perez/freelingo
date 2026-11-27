@@ -1808,7 +1808,7 @@
       },
       {
         "title": "Charla con imágenes",
-        "body": "La charla con imágenes muestra una imagen para que la describas. Para dibujarla en tu dispositivo, tu cuenta necesita las imágenes activadas y tu navegador necesita WebGPU. Si no, la pantalla muestra las palabras. Las palabras salen de tus tarjetas, primero las que toca repasar y las creadas desde errores. No hay micrófono ni cuadro de texto. Pulsa Ya respondí cuando hayas respondido, o Tardé demasiado para recibir una pista más. La respuesta modelo del tutor se guarda como tarjeta."
+        "body": "La charla con imágenes muestra una imagen para que la describas. Para dibujarla en tu dispositivo, tu cuenta necesita las imágenes activadas y tu navegador necesita WebGPU. Un móvil sin WebGPU recibe la imagen dibujada en el Mac. Si ninguna opción funciona, la pantalla muestra las palabras. Las palabras salen de tus tarjetas, primero las que toca repasar y las creadas desde errores. No hay micrófono ni cuadro de texto. Pulsa Ya respondí cuando hayas respondido, o Tardé demasiado para recibir una pista más. La respuesta modelo del tutor se guarda como tarjeta."
       }
     ],
     "helpPages": {
