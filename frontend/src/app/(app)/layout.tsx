@@ -7,6 +7,7 @@ import { useLocale, useTranslations } from 'next-intl'
 import { ChevronDown } from 'lucide-react'
 import { useAuthStore, isSubscribed } from '@/store/auth'
 import { useConfigStore } from '@/store/config'
+import { useLanguageStore } from '@/store/language'
 import { apiFetch, requestAccessToken } from '@/lib/api'
 import { mapUser } from '@/lib/mappers'
 import { useLogout } from '@/hooks/useLogout'
@@ -39,6 +40,12 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const locale = useLocale()
   const collator = new Intl.Collator(locale)
+  const activePlanId = useLanguageStore(
+    (s) =>
+      s.userLanguages.find(
+        (language) => language.target_language === s.activeLanguage?.code
+      )?.plan?.id
+  )
 
   const navGroups = [
     {
@@ -62,6 +69,15 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
         { href: '/games', label: tNav('games') },
         { href: '/grammar-practice', label: tNav('practiceGrammar') },
         { href: '/situations', label: tNav('situations') },
+        // Picture talk has no page of its own; the plan id picks its scene.
+        ...(activePlanId !== undefined
+          ? [
+              {
+                href: `/conversation?picture=${activePlanId}`,
+                label: tNav('pictureTalk'),
+              },
+            ]
+          : []),
       ].sort((a, b) => collator.compare(a.label, b.label)),
     },
     {
@@ -452,7 +468,7 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
           )}
           <button
             onClick={() => setMobileMenuOpen((o) => !o)}
-            className="text-fl-muted-2 hover:text-fl-fg p-1 font-mono transition-colors"
+            className="text-fl-muted-2 hover:text-fl-fg flex min-h-11 min-w-11 items-center justify-center font-mono transition-colors"
             aria-label={
               mobileMenuOpen ? tCommon('closeMenu') : tCommon('openMenu')
             }

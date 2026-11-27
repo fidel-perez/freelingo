@@ -205,6 +205,8 @@ beforeEach(() => {
     true
   )
   localStorage.clear()
+  // Listening defaults to off; the existing tests exercise the voice path.
+  localStorage.setItem('conversation_listening', '1')
   vi.clearAllMocks()
   MockWebSocket.instances = []
   mocks.starters = []
@@ -2271,5 +2273,92 @@ describe('ConversationMode session lifecycle', () => {
     const current = await start('startNew')
     act(() => speak())
     expect(current.send).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('ConversationMode listening and typed input', () => {
+  const switchName = /listening(On|Off)/
+
+  it('starts with listening off and opens no microphone', async () => {
+    localStorage.removeItem('conversation_listening')
+    render(<ConversationMode />)
+    const toggle = screen.getByRole('switch', { name: switchName })
+    expect(toggle).toHaveAttribute('aria-checked', 'false')
+
+    await start()
+
+    expect(mocks.getUserMedia).not.toHaveBeenCalled()
+    expect(mocks.start).not.toHaveBeenCalled()
+    expect(screen.getByRole('switch', { name: switchName })).toBeDisabled()
+  })
+
+  it('saves the listening choice and opens the microphone when it is on', async () => {
+    localStorage.removeItem('conversation_listening')
+    const { unmount } = render(<ConversationMode />)
+    fireEvent.click(screen.getByRole('switch', { name: switchName }))
+    expect(localStorage.getItem('conversation_listening')).toBe('1')
+    unmount()
+
+    render(<ConversationMode />)
+    expect(screen.getByRole('switch', { name: switchName })).toHaveAttribute(
+      'aria-checked',
+      'true'
+    )
+    await start()
+    expect(mocks.getUserMedia).toHaveBeenCalledTimes(1)
+  })
+
+  it('sends a typed line as a user_text message', async () => {
+    localStorage.removeItem('conversation_listening')
+    render(<ConversationMode />)
+    expect(screen.queryByLabelText('typedLabel')).toBeNull()
+    const ws = await start()
+
+    fireEvent.change(screen.getByLabelText('typedLabel'), {
+      target: { value: ' Bonjour ' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'typedSend' }))
+
+    expect(ws.send).toHaveBeenCalledWith(
+      JSON.stringify({ type: 'user_text', text: 'Bonjour' })
+    )
+    expect(screen.getByLabelText('typedLabel')).toHaveValue('')
+  })
+
+  it('shows neither the toggle nor the text box in picture talk', async () => {
+    render(<ConversationMode pictureSceneId={3} studyPlanId={7} />)
+    await start()
+    expect(screen.queryByRole('switch')).toBeNull()
+    expect(screen.queryByLabelText('typedLabel')).toBeNull()
+  })
+
+  it('links to the flashcards with a touch-sized target and offers help', () => {
+    render(<ConversationMode />)
+    const link = screen.getByRole('link', { name: 'flashcardsLink' })
+    expect(link).toHaveAttribute('href', '/flashcards')
+    expect(link.className).toContain('min-h-10')
+    expect(screen.getByRole('button', { name: 'helpButton' })).toHaveAttribute(
+      'aria-expanded',
+      'false'
+    )
+  })
+
+  it('shows replay, translate and a mistake button under the right lines', async () => {
+    render(<ConversationMode studyPlanId={7} />)
+    const ws = await start()
+    act(() => {
+      ws.message({ type: 'transcript', role: 'user', text: 'J ai allé' })
+      ws.message({
+        type: 'transcript',
+        role: 'assistant',
+        final: true,
+        text: 'Très bien.',
+      })
+    })
+    expect(screen.getAllByRole('button', { name: 'replay' })).toHaveLength(2)
+    expect(screen.getAllByRole('button', { name: 'translate' })).toHaveLength(1)
+    expect(
+      screen.getAllByRole('button', { name: 'flagMistake' })
+    ).toHaveLength(1)
   })
 })

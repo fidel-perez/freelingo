@@ -48,6 +48,8 @@ import StatusIndicator, { type ConvStatus } from './StatusIndicator'
 import TranscriptBubble from './TranscriptBubble'
 import SessionTimeoutBanner from './SessionTimeoutBanner'
 import MicButton from './MicButton'
+import ConversationHelp from './ConversationHelp'
+import TypedInput from './TypedInput'
 import {
   ButtonTurnControls,
   type ButtonTurnEvent,
@@ -267,6 +269,16 @@ const convLogger = ENABLE_CONVERSATION_AUDIO_DEBUG_LOGS
   ? getLogger('conversation-audio')
   : silentLogger
 
+const LISTENING_KEY = 'conversation_listening'
+
+function readListening(): boolean {
+  try {
+    return localStorage.getItem(LISTENING_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
 export default function ConversationMode({
   initialContext,
   autoStart,
@@ -277,6 +289,7 @@ export default function ConversationMode({
   situationId,
   situationStudyPlanId,
   pictureSceneId,
+  studyPlanId,
   pictureSlot,
   onRequestScene,
   lessonTitle,
@@ -297,6 +310,7 @@ export default function ConversationMode({
   situationId?: string
   situationStudyPlanId?: number
   pictureSceneId?: number
+  studyPlanId?: number
   pictureSlot?: ReactNode
   onRequestScene?: () => Promise<number | null>
   lessonTitle?: string
@@ -386,6 +400,8 @@ export default function ConversationMode({
     show: showMemoryToast,
   } = useTransientToast()
   const [quota, setQuota] = useState<QuotaStatus | null>(null)
+  // Listening is optional: with it off, no microphone opens and the learner types.
+  const [listening, setListening] = useState(readListening)
   const [reviewPromptOpen, setReviewPromptOpen] = useState(false)
   const {
     selectedWord,
@@ -421,6 +437,7 @@ export default function ConversationMode({
   const nativeRateRef = useRef(DEFAULT_NATIVE_SPEECH_RATE)
   const [nextBusy, setNextBusy] = useState(false)
   const pictureMode = pictureSceneId !== undefined
+  const resolvedPlanId = studyPlanId ?? situationStudyPlanId
   const transcriptIdRef = useRef(0)
   const transcriptEndRef = useRef<HTMLDivElement | null>(null)
   const activeTurnIdRef = useRef<number | null>(null)
@@ -1267,8 +1284,7 @@ export default function ConversationMode({
       !auth.accessToken ||
       auth.sessionVersion !== sessionVersion ||
       auth.user?.id !== user?.id ||
-      vad.loading ||
-      vad.errored ||
+      (listening && (vad.loading || vad.errored)) ||
       sessionActiveRef.current ||
       sessionActive ||
       status === 'warming' ||
@@ -1362,8 +1378,8 @@ export default function ConversationMode({
     // Local models may need a cold start; provider health is not guaranteed.
     setStatus('warming')
 
-    // Picture talk opens no microphone and starts no VAD; the buttons drive each turn.
-    if (!pictureMode) {
+    // Picture talk and a listening-off session open no microphone and start no VAD.
+    if (!pictureMode && listening) {
       // Start mic (requests permission if not already granted)
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
@@ -1524,6 +1540,33 @@ export default function ConversationMode({
     ws.send(JSON.stringify({ type: 'button_event', event }))
   }
 
+  function handleTypedLine(text: string) {
+    const ws = wsRef.current
+    if (
+      pictureMode ||
+      !sessionActiveRef.current ||
+      ws?.readyState !== WebSocket.OPEN
+    )
+      return
+    audioQueueRef.current?.cancel()
+    assistantSpeakingRef.current = false
+    assistantTurnActiveRef.current = true
+    setAssistantSpeaking(false)
+    setAssistantThinking(true)
+    setErrorMsg(null)
+    ws.send(JSON.stringify({ type: 'user_text', text }))
+  }
+
+  function toggleListening() {
+    const next = !listening
+    setListening(next)
+    try {
+      localStorage.setItem(LISTENING_KEY, next ? '1' : '0')
+    } catch {
+      // The choice then lasts for this page view only.
+    }
+  }
+
   function handleStop() {
     const owner = sessionOwnerRef.current
     const completedPractice =
@@ -1573,8 +1616,8 @@ export default function ConversationMode({
   return (
     <div className="mx-auto flex h-full max-w-4xl flex-col overflow-hidden p-4 md:p-6">
       {/* Header */}
-      <div className="border-fl-border mb-6 flex items-end justify-between border-b pb-4">
-        <div>
+      <div className="border-fl-border mb-6 flex flex-wrap items-end justify-between gap-3 border-b pb-4">
+        <div className="min-w-0">
           <p className="text-fl-label text-fl-muted-2 mb-1 font-mono tracking-widest uppercase">
             {t('subtitle')}
           </p>
@@ -1602,11 +1645,12 @@ export default function ConversationMode({
         {onClose && (
           <button
             onClick={onClose}
-            className="text-fl-hint text-fl-muted-2 hover:text-fl-fg font-mono tracking-widest uppercase transition-colors"
+            className="text-fl-hint text-fl-muted-2 hover:text-fl-fg min-h-10 min-w-10 font-mono tracking-widest uppercase transition-colors"
           >
             ← {tCommon('back')}
           </button>
         )}
+        {!trialMode && <ConversationHelp />}
       </div>
 
       {situationId !== undefined && (
@@ -1648,6 +1692,7 @@ export default function ConversationMode({
               userAvatar={user?.avatar}
               userInitial={(user?.displayName || user?.username || '?')[0]}
               languageCode={targetLanguage}
+              studyPlanId={resolvedPlanId}
               onPointerUp={
                 entry.role === 'assistant'
                   ? () =>
@@ -1772,6 +1817,21 @@ export default function ConversationMode({
           assistantSpeaking={assistantSpeaking}
           assistantThinking={assistantThinking}
         />
+        {!pictureMode && !accessExhausted && !demoAccessEnded && (
+          <button
+            type="button"
+            role="switch"
+            aria-checked={listening}
+            disabled={sessionActive}
+            onClick={toggleListening}
+            className="border-fl-border text-fl-muted-1 hover:border-fl-border-2 hover:text-fl-fg min-h-10 border px-4 font-mono text-xs tracking-widest uppercase transition-colors disabled:opacity-40"
+          >
+            {listening ? t('listeningOn') : t('listeningOff')}
+          </button>
+        )}
+        {!pictureMode && sessionActive && (
+          <TypedInput onSend={handleTypedLine} disabled={assistantThinking} />
+        )}
         {!accessExhausted && !demoAccessEnded && (
           <MicButton
             status={status}

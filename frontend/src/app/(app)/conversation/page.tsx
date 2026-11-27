@@ -49,6 +49,7 @@ interface LessonPractice {
   grammarPracticeSessionId?: string
   situationId?: SituationId
   situationStudyPlanId?: number
+  studyPlanId?: number
   pictureSceneId?: number
   pictureImagePrompt?: string
   pictureWords?: string[]
@@ -186,6 +187,7 @@ function PictureConversationPage({ planParam }: { planParam: string }) {
   return (
     <ConversationPageContent
       practice={{
+        studyPlanId: planId,
         pictureSceneId: scene.id,
         pictureImagePrompt: scene.image_prompt,
         pictureWords: scene.words,
@@ -673,6 +675,11 @@ function ConversationPageContent({ practice }: { practice?: LessonPractice }) {
             situationId={practice?.situationId}
             situationStudyPlanId={practice?.situationStudyPlanId}
             pictureSceneId={practice?.pictureSceneId}
+            studyPlanId={
+              practice?.studyPlanId ??
+              practice?.situationStudyPlanId ??
+              activePlanId
+            }
             pictureSlot={
               practice?.pictureImagePrompt ? (
                 <PictureTalkImage
