@@ -549,7 +549,8 @@
     "contact": "Contacto",
     "feedback": "Feedback",
     "reviews": "Reseñas",
-    "switchLanguage": "Cambiar idioma"
+    "switchLanguage": "Cambiar idioma",
+    "pictureTalk": "Charla con imágenes"
   },
   "auth": {
     "login": {
@@ -1754,7 +1755,79 @@
       "Planes de fin de semana",
       "Trabajo y objetivos profesionales",
       "Trabajar desde casa"
-    ]
+    ],
+    "replay": "Repetir",
+    "translate": "Traducir",
+    "hideTranslation": "Ocultar traducción",
+    "translating": "Traduciendo...",
+    "translateError": "La traducción falló. Inténtalo de nuevo.",
+    "replayError": "El audio falló. Inténtalo de nuevo.",
+    "flagMistake": "Me equivoqué",
+    "flagMistakeBusy": "Guardando...",
+    "flagMistakeLogged": "Guardado en tus tarjetas",
+    "flagMistakeRight": "El tutor no encontró ningún error aquí",
+    "flagMistakeError": "No se pudo guardar. Inténtalo de nuevo.",
+    "listeningOn": "Escucha: activada",
+    "listeningOff": "Escucha: desactivada",
+    "typedLabel": "Escribe tu mensaje",
+    "typedPlaceholder": "Escribe en el idioma que estudias",
+    "typedSend": "Enviar",
+    "flashcardsLink": "Tarjetas",
+    "helpButton": "Ayuda",
+    "helpTitle": "Cómo funciona esta pantalla",
+    "helpClose": "Cerrar la ayuda",
+    "helpPagesTitle": "Todas las páginas de la app",
+    "helpItems": [
+      {
+        "title": "Errores que encuentra el tutor",
+        "body": "Mientras hablas, el tutor puede registrar un error que oye. Cada registro guarda tu frase, la frase corregida y una nota breve. Un error nuevo se convierte en una tarjeta con repaso espaciado. Si repites el mismo error, la tarjeta se actualiza y su calendario de repaso empieza de nuevo."
+      },
+      {
+        "title": "Me equivoqué",
+        "body": "El botón bajo cada una de tus frases envía esa frase al modelo de lenguaje para que la corrija. Si el modelo la ve correcta, no se guarda nada. Cualquier otra frase entra en el registro de errores y se convierte en tarjeta, igual que un error que encuentra el tutor."
+      },
+      {
+        "title": "Tarjetas de tus errores",
+        "body": "Las tarjetas creadas desde errores pertenecen a tu plan de estudio como cualquier otra tarjeta. Aparecen en el repaso de Tarjetas cuando les toca. El botón Tarjetas de la parte superior de esta pantalla abre esa página."
+      },
+      {
+        "title": "Estilo de corrección",
+        "body": "En Ajustes hay una opción de correcciones del tutor. Con Reformulación, el tutor repite tu frase corregida sin nombrar el error. Con Explícita, nombra el error y da la forma correcta en una frase corta. Reformulación es la opción por defecto."
+      },
+      {
+        "title": "Traducir",
+        "body": "El botón Traducir de una frase del tutor pide al modelo de lenguaje una traducción a tu idioma nativo. Púlsalo otra vez para ocultar la traducción."
+      },
+      {
+        "title": "Repetir",
+        "body": "El botón Repetir vuelve a decir una frase con la voz de tus ajustes de voz. Funciona con las frases del tutor y con las tuyas."
+      },
+      {
+        "title": "Escucha y escritura",
+        "body": "La escucha viene desactivada. Con ella desactivada, el micrófono no se abre y escribes tus frases en el cuadro de texto. Actívala antes de empezar una sesión para hablar por voz. La elección se guarda en este dispositivo y queda bloqueada mientras dura la sesión. Una frase escrita no pasa por el reconocimiento de voz, y el tutor responde con voz."
+      },
+      {
+        "title": "Charla con imágenes",
+        "body": "La charla con imágenes muestra una imagen para que la describas. Para dibujarla en tu dispositivo, tu cuenta necesita las imágenes activadas y tu navegador necesita WebGPU. Si no, la pantalla muestra las palabras. Las palabras salen de tus tarjetas, primero las que toca repasar y las creadas desde errores. No hay micrófono ni cuadro de texto. Pulsa Ya respondí cuando hayas respondido, o Tardé demasiado para recibir una pista más. La respuesta modelo del tutor se guarda como tarjeta."
+      }
+    ],
+    "helpPages": {
+      "myPlan": "Tu plan de estudio y su avance día a día.",
+      "progress": "El seguimiento de tus destrezas.",
+      "assessment": "Una prueba breve que te sitúa en la escala de niveles CEFR.",
+      "tutor": "Chat escrito con Lingu, tu tutor.",
+      "conversation": "Conversación por voz con Lingu.",
+      "listening": "Ejercicios de comprensión oral.",
+      "reading": "Ejercicios de lectura.",
+      "flashcards": "Repaso de las tarjetas de hoy, incluidas las creadas desde tus errores.",
+      "games": "Juegos cortos que refuerzan lo aprendido.",
+      "practiceGrammar": "Temas de gramática guardados desde Recursos, practicados en series de cinco.",
+      "situations": "Práctica de conversación en situaciones cotidianas, y la entrada a la charla con imágenes.",
+      "grammar": "Lecciones de gramática.",
+      "vocabulary": "El centro de vocabulario.",
+      "phrasebook": "Frases útiles del idioma que estudias.",
+      "settings": "Cuenta, voz, correcciones del tutor, idiomas y recuerdos."
+    }
   },
   "voiceRecorder": {
     "record": "Grabar",

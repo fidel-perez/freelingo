@@ -549,7 +549,8 @@
     "contact": "Kontakt",
     "feedback": "Feedback",
     "reviews": "Bewertungen",
-    "switchLanguage": "Sprache wechseln"
+    "switchLanguage": "Sprache wechseln",
+    "pictureTalk": "Bildgespräch"
   },
   "auth": {
     "login": {
@@ -1754,7 +1755,79 @@
       "Wochendpläne",
       "Arbeit und Karriereziele",
       "Homeoffice"
-    ]
+    ],
+    "replay": "Replay",
+    "translate": "Translate",
+    "hideTranslation": "Hide translation",
+    "translating": "Translating...",
+    "translateError": "The translation failed. Try again.",
+    "replayError": "The audio failed. Try again.",
+    "flagMistake": "I made a mistake",
+    "flagMistakeBusy": "Saving...",
+    "flagMistakeLogged": "Saved to your flashcards",
+    "flagMistakeRight": "The tutor found no mistake here",
+    "flagMistakeError": "Could not save. Try again.",
+    "listeningOn": "Listening: on",
+    "listeningOff": "Listening: off",
+    "typedLabel": "Type your message",
+    "typedPlaceholder": "Type in the study language",
+    "typedSend": "Send",
+    "flashcardsLink": "Flashcards",
+    "helpButton": "Help",
+    "helpTitle": "How this screen works",
+    "helpClose": "Close help",
+    "helpPagesTitle": "Every page of the app",
+    "helpItems": [
+      {
+        "title": "Mistakes the tutor finds",
+        "body": "While you talk, the tutor can record a mistake it hears. Each record keeps your sentence, the corrected sentence and a short note. A new mistake becomes a flashcard with spaced review. Repeating the same mistake updates the card and restarts its review schedule."
+      },
+      {
+        "title": "I made a mistake",
+        "body": "The button under each of your lines sends that line to the language model for correction. A line the model finds correct saves nothing. Any other line goes into the mistake log and becomes a flashcard, like a mistake the tutor finds."
+      },
+      {
+        "title": "Cards from mistakes",
+        "body": "Cards made from mistakes belong to your study plan like any other card. They appear in the Flashcards review when they are due. The Flashcards button at the top of this screen opens that page."
+      },
+      {
+        "title": "Correction style",
+        "body": "Settings has a Tutor corrections choice. Recast makes the tutor repeat your sentence corrected, without naming the mistake. Explicit makes it name the mistake and give the corrected form in one short sentence. Recast is the default."
+      },
+      {
+        "title": "Translate",
+        "body": "The Translate button on a tutor line asks the language model for a translation into your native language. Press it again to hide the translation."
+      },
+      {
+        "title": "Replay",
+        "body": "The Replay button speaks a line again with the voice from your voice settings. It works on tutor lines and on your own lines."
+      },
+      {
+        "title": "Listening and typing",
+        "body": "Listening is off by default. With it off, the microphone does not open and you type your lines in the text box. Switch it on before you start a session to talk by voice. The choice is saved on this device and stays locked while a session runs. A typed line skips speech recognition, and the tutor answers by voice."
+      },
+      {
+        "title": "Picture talk",
+        "body": "Picture talk shows a picture for you to describe. Your account needs images turned on, and your browser needs WebGPU, for the picture to be drawn on your device. Otherwise the screen shows the words. The words come from your flashcards, with due cards and mistake cards first. Picture talk has no microphone and no text box. Press I answered when you have answered, or I took too long to get one more hint. The tutor's model answer is saved as a card."
+      }
+    ],
+    "helpPages": {
+      "myPlan": "Your study plan and its progress by day.",
+      "progress": "Your skills tracker.",
+      "assessment": "A short test that places you on the CEFR level scale.",
+      "tutor": "Written chat with Lingu, your tutor.",
+      "conversation": "Voice conversation with Lingu.",
+      "listening": "Listening exercises.",
+      "reading": "Reading exercises.",
+      "flashcards": "Review of the cards due today, including cards from your mistakes.",
+      "games": "Short games that reinforce what you learnt.",
+      "practiceGrammar": "Grammar topics saved from Resources, practised in sets of five.",
+      "situations": "Speaking practice in everyday scenarios, and the way into picture talk.",
+      "grammar": "Grammar lessons.",
+      "vocabulary": "The vocabulary hub.",
+      "phrasebook": "Useful phrases for the study language.",
+      "settings": "Account, voice, tutor corrections, languages and memories."
+    }
   },
   "voiceRecorder": {
     "record": "Aufnehmen",

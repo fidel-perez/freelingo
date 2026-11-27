@@ -2,6 +2,7 @@ import Image from 'next/image'
 import { useTranslations } from 'next-intl'
 import { TargetLanguageText } from '@/components/TargetLanguageText'
 import { AuthAvatarImage } from '@/components/AuthAvatarImage'
+import LineActions from './LineActions'
 
 interface Props {
   role: 'user' | 'assistant'
@@ -12,6 +13,7 @@ interface Props {
   userInitial?: string
   languageCode?: string | null
   onPointerUp?: () => void
+  studyPlanId?: number
 }
 
 export default function TranscriptBubble({
@@ -23,6 +25,7 @@ export default function TranscriptBubble({
   userInitial,
   languageCode,
   onPointerUp,
+  studyPlanId,
 }: Props) {
   const t = useTranslations('conversation')
   const isUser = role === 'user'
@@ -97,6 +100,9 @@ export default function TranscriptBubble({
             <span className="ml-1 inline-block h-3 w-1 animate-pulse bg-current align-middle motion-reduce:animate-none" />
           )}
         </TargetLanguageText>
+        {studyPlanId !== undefined && !streaming && text.trim() !== '' && (
+          <LineActions text={text} studyPlanId={studyPlanId} isUser={isUser} />
+        )}
       </div>
     </div>
   )
