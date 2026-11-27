@@ -1,12 +1,14 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { apiFetch } from '@/lib/api'
 import { browserImagesSupported, drawImage } from '@/lib/browser-images'
 import { useAuthStore } from '@/store/auth'
 
-type ImageState = 'loading' | 'done' | 'failed' | 'unsupported'
+type ImageState =
+  'loading' | 'done' | 'failed' | 'unsupported' | 'server-loading' | 'server'
 
-/** Draws the scene in the browser; `data-image-state` follows the draw. */
+/** Draws the scene in the browser, or fetches the Mac-drawn image when the browser cannot; `data-image-state` follows it. */
 export function PictureTalkImage({
   prompt,
   words = [],
@@ -17,10 +19,15 @@ export function PictureTalkImage({
   const enabled = useAuthStore((s) => s.user?.images_enabled)
   const baseUrl = useAuthStore((s) => s.user?.image_model_base_url)
   const canDraw = !!enabled && !!baseUrl && browserImagesSupported()
+  const useServer = !!enabled && !canDraw
   const [drawState, setState] = useState<ImageState>('loading')
+  const [serverState, setServerState] = useState<ImageState>('server-loading')
   const [src, setSrc] = useState('')
-  // No draw can start: show the words. A server-image branch goes here later.
-  const state: ImageState = canDraw ? drawState : 'unsupported'
+  const state: ImageState = canDraw
+    ? drawState
+    : useServer
+      ? serverState
+      : 'unsupported'
 
   useEffect(() => {
     if (!canDraw || !baseUrl) return
@@ -44,18 +51,51 @@ export function PictureTalkImage({
     }
   }, [canDraw, baseUrl, prompt])
 
+  useEffect(() => {
+    if (!useServer) return
+    let cancelled = false
+    let url = ''
+    setServerState('server-loading')
+    setSrc('')
+    void apiFetch('/api/picture-talk/image', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt }),
+    })
+      .then(async (res) => {
+        if (!res.ok) throw new Error('image server failed')
+        const blob = await res.blob()
+        if (cancelled) return
+        url = URL.createObjectURL(blob)
+        setSrc(url)
+        setServerState('server')
+      })
+      .catch(() => {
+        if (!cancelled) setServerState('failed')
+      })
+    return () => {
+      cancelled = true
+      if (url) URL.revokeObjectURL(url)
+    }
+  }, [useServer, prompt])
+
+  const showWords =
+    state === 'unsupported' || state === 'failed' || state === 'server-loading'
+
   return (
     <div
       data-picture-talk-image
       data-image-state={state}
       className="border-fl-border bg-fl-surface mx-auto mb-4 aspect-square w-full max-w-xs shrink-0 overflow-hidden border"
     >
-      {state === 'done' && (
+      {(state === 'done' || state === 'server') && (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={src} alt="" className="h-full w-full object-cover" />
       )}
-      {(state === 'unsupported' || state === 'failed') && (
-        <p className="text-fl-muted-1 flex h-full flex-wrap content-center items-center justify-center gap-2 p-4 text-center font-sans text-lg">
+      {showWords && (
+        <p
+          className={`text-fl-muted-1 flex h-full flex-wrap content-center items-center justify-center gap-2 p-4 text-center font-sans text-lg${state === 'server-loading' ? 'animate-pulse' : ''}`}
+        >
           {words.map((word, index) => (
             <span key={index}>{word}</span>
           ))}

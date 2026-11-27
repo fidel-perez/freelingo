@@ -244,13 +244,52 @@ describe('picture talk page', () => {
     )
   })
 
-  it('talks without WebGPU and shows the words in place of the picture', async () => {
+  it('fetches the Mac-drawn image without WebGPU, showing the words while it loads', async () => {
     stubBrowser(false)
+    let release: (r: unknown) => void = () => {}
+    const image = new Promise((resolve) => {
+      release = resolve
+    })
+    mocks.apiFetch.mockImplementation(async (url: string) =>
+      url === '/api/picture-talk/scenes'
+        ? { ok: true, json: async () => scene }
+        : image
+    )
     const { container } = renderPage()
     await screen.findByRole('button', { name: 'start' })
     expect(screen.queryByText('unavailable')).toBeNull()
     const slot = container.querySelector('[data-picture-talk-image]')
-    expect(slot).toHaveAttribute('data-image-state', 'unsupported')
+    await waitFor(() =>
+      expect(slot).toHaveAttribute('data-image-state', 'server-loading')
+    )
+    expect(slot).toHaveTextContent('ab')
+    expect(mocks.apiFetch).toHaveBeenCalledWith(
+      '/api/picture-talk/image',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ prompt: scene.image_prompt }),
+      })
+    )
+    release({ ok: true, blob: async () => new Blob(['png']) })
+    await waitFor(() =>
+      expect(slot).toHaveAttribute('data-image-state', 'server')
+    )
+    expect(slot!.querySelector('img')).not.toBeNull()
+  })
+
+  it('shows the words when the Mac image fails', async () => {
+    stubBrowser(false)
+    mocks.apiFetch.mockImplementation(async (url: string) =>
+      url === '/api/picture-talk/scenes'
+        ? { ok: true, json: async () => scene }
+        : { ok: false, status: 404 }
+    )
+    const { container } = renderPage()
+    await screen.findByRole('button', { name: 'start' })
+    const slot = container.querySelector('[data-picture-talk-image]')
+    await waitFor(() =>
+      expect(slot).toHaveAttribute('data-image-state', 'failed')
+    )
     expect(slot).toHaveTextContent('ab')
   })
 
@@ -267,15 +306,26 @@ describe('picture talk page', () => {
     expect(slot).toHaveAttribute('data-image-state', 'unsupported')
     expect(slot).toHaveTextContent('ab')
     expect(worker).not.toHaveBeenCalled()
+    expect(mocks.apiFetch).not.toHaveBeenCalledWith(
+      '/api/picture-talk/image',
+      expect.anything()
+    )
   })
 
-  it('shows the words, not an empty box, with WebGPU and no weights URL', async () => {
+  it('uses the Mac image, not an empty box, with WebGPU and no weights URL', async () => {
     setUser({ images_enabled: true })
+    mocks.apiFetch.mockImplementation(async (url: string) =>
+      url === '/api/picture-talk/scenes'
+        ? { ok: true, json: async () => scene }
+        : { ok: true, blob: async () => new Blob(['png']) }
+    )
     const { container } = renderPage()
     await screen.findByRole('button', { name: 'start' })
-    const slot = container.querySelector('[data-picture-talk-image]')
-    expect(slot).toHaveAttribute('data-image-state', 'unsupported')
-    expect(slot).toHaveTextContent('ab')
+    await waitFor(() =>
+      expect(
+        container.querySelector('[data-picture-talk-image]')
+      ).toHaveAttribute('data-image-state', 'server')
+    )
   })
 
   it('shows the words when the draw fails, one per word even when repeated', async () => {

@@ -30,6 +30,8 @@ class Settings(BaseSettings):
     TTS_PROVIDER: Literal["local", "openai", "gemini"] = "local"
     TTS_BASE_URL: str = "http://kokoro:8880"
     IMAGE_MODEL_BASE_URL: str = ""
+    # Host service that draws scene images for browsers without WebGPU; empty turns it off.
+    IMAGE_SERVER_BASE_URL: str = ""
     TTS_VOICE: str = "af_heart"
     # Fast text model for the button-turn voice loop and picture talk; empty uses the LLM above.
     FAST_LLM_BASE_URL: str = ""  # OpenAI-compatible server, URL ending in /v1

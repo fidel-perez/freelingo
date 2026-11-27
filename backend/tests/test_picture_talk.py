@@ -5,8 +5,9 @@ from __future__ import annotations
 import asyncio
 from contextlib import asynccontextmanager
 from datetime import date, timedelta
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
+import httpx
 import pytest
 from sqlalchemy import select
 
@@ -531,3 +532,81 @@ async def test_same_language_asks_for_no_native_line(db_session, test_user, plan
     assert [(m.original, m.corrected, m.source) for m in mistakes] == [
         ("Le chat dort.", "Le chat dort.", "voice")
     ]
+
+
+# ── Server image ───────────────────────────────────────────────────────────────
+
+_IMAGE_CLIENT = "app.routers.picture_talk.httpx.AsyncClient"
+_SERVER = "app.routers.picture_talk.settings.IMAGE_SERVER_BASE_URL"
+
+
+def _image_post(mock: AsyncMock):
+    """An httpx.AsyncClient stand-in whose post is `mock`; the test client stays real."""
+    client = MagicMock()
+    client.__aenter__.return_value = MagicMock(post=mock)
+    return patch(_IMAGE_CLIENT, return_value=client)
+
+
+def _png_response(status: int = 200) -> httpx.Response:
+    request = httpx.Request("POST", "http://host/generate")
+    return httpx.Response(status, content=b"\x89PNGdata", request=request)
+
+
+async def test_server_image_proxies_png(client, db_session, test_user):
+    user, headers = test_user
+    user.images_enabled = True
+    await db_session.commit()
+
+    with (
+        patch(_SERVER, "http://host:18850/"),
+        _image_post(AsyncMock(return_value=_png_response())) as http_cls,
+    ):
+        response = await client.post(
+            "/api/picture-talk/image", headers=headers, json={"prompt": "A cat"}
+        )
+
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "image/png"
+    assert response.content == b"\x89PNGdata"
+    post = http_cls.return_value.__aenter__.return_value.post
+    assert post.call_args.args[0] == "http://host:18850/generate"
+    assert post.call_args.kwargs["json"] == {"prompt": "A cat", "width": 512, "height": 512}
+    assert post.call_args.kwargs["timeout"] == 60.0
+
+
+async def test_server_image_off_makes_no_call(client, db_session, test_user):
+    user, headers = test_user
+    body = {"prompt": "A cat"}
+    user.images_enabled = True
+    await db_session.commit()
+
+    post = AsyncMock()
+    with _image_post(post):
+        with patch(_SERVER, ""):
+            off = await client.post("/api/picture-talk/image", headers=headers, json=body)
+        user.images_enabled = False
+        await db_session.commit()
+        with patch(_SERVER, "http://host:18850"):
+            disabled = await client.post("/api/picture-talk/image", headers=headers, json=body)
+        anonymous = await client.post("/api/picture-talk/image", json=body)
+
+    assert (off.status_code, disabled.status_code, anonymous.status_code) == (404, 404, 401)
+    post.assert_not_awaited()
+
+
+async def test_server_image_failure_is_503(client, db_session, test_user):
+    user, headers = test_user
+    user.images_enabled = True
+    await db_session.commit()
+
+    failures = (
+        AsyncMock(return_value=_png_response(500)),
+        AsyncMock(side_effect=httpx.ConnectError("down")),
+    )
+    with patch(_SERVER, "http://host:18850"):
+        for mock in failures:
+            with _image_post(mock):
+                response = await client.post(
+                    "/api/picture-talk/image", headers=headers, json={"prompt": "A cat"}
+                )
+            assert response.status_code == 503

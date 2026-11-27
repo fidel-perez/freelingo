@@ -1808,7 +1808,7 @@
       },
       {
         "title": "Picture talk",
-        "body": "Picture talk shows a picture for you to describe. Your account needs images turned on, and your browser needs WebGPU, for the picture to be drawn on your device. Otherwise the screen shows the words. The words come from your flashcards, with due cards and mistake cards first. Picture talk has no microphone and no text box. Press I answered when you have answered, or I took too long to get one more hint. The tutor's model answer is saved as a card."
+        "body": "Picture talk shows a picture for you to describe. Your account needs images turned on, and your browser needs WebGPU, for the picture to be drawn on your device. A phone without WebGPU gets the picture drawn on the Mac instead. If neither works, the screen shows the words. The words come from your flashcards, with due cards and mistake cards first. Picture talk has no microphone and no text box. Press I answered when you have answered, or I took too long to get one more hint. The tutor's model answer is saved as a card."
       }
     ],
     "helpPages": {
