@@ -142,4 +142,31 @@ describe('browser images', () => {
     await expect(drawImage('https://w/', 'two')).resolves.toBeInstanceOf(Blob)
     expect(created).toHaveLength(2)
   })
+
+  it.each([
+    ['a null adapter', async () => null, 'no WebGPU adapter'],
+    [
+      'an adapter without shader-f16',
+      async () => ({ features: new Set<string>() }),
+      'no shader-f16',
+    ],
+  ])('rejects without a worker for %s', async (_name, requestAdapter, message) => {
+    Object.defineProperty(navigator, 'gpu', {
+      value: { requestAdapter },
+      configurable: true,
+    })
+    vi.resetModules()
+    const created: unknown[] = []
+    class CountingWorker extends FakeWorker {
+      constructor() {
+        super()
+        created.push(this)
+      }
+    }
+    vi.stubGlobal('Worker', CountingWorker)
+    const { drawImage } = await import('@/lib/browser-images')
+
+    await expect(drawImage('https://w/', 'p')).rejects.toThrow(message)
+    expect(created).toHaveLength(0)
+  })
 })

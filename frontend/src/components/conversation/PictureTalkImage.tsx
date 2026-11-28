@@ -28,7 +28,8 @@ export function PictureTalkImage({
   const baseUrl = useAuthStore((s) => s.user?.image_model_base_url)
   const t = useTranslations('pictureTalk')
   const canDraw = !!enabled && !!baseUrl && browserImagesSupported()
-  const [drawFailed, setDrawFailed] = useState(false)
+  const [failedPrompt, setFailedPrompt] = useState<string | null>(null)
+  const drawFailed = failedPrompt === prompt
   const [retryKey, setRetryKey] = useState(0)
   const useServer = !!enabled && (!canDraw || drawFailed)
   const [drawState, setState] = useState<ImageState>('loading')
@@ -46,16 +47,20 @@ export function PictureTalkImage({
     let url = ''
     setState('loading')
     setSrc('')
-    setDrawFailed(false)
     // Any draw failure, or no image after DRAW_LIMIT_MS, hands the scene to the image server.
+    let timedOut = false
     const giveUp = () => {
-      if (!cancelled) setDrawFailed(true)
+      if (!cancelled) setFailedPrompt(prompt)
     }
-    const limit = setTimeout(giveUp, DRAW_LIMIT_MS)
+    const limit = setTimeout(() => {
+      timedOut = true
+      giveUp()
+    }, DRAW_LIMIT_MS)
     void drawImage(baseUrl, prompt)
       .then((blob) => {
         clearTimeout(limit)
-        if (cancelled) return
+        // After the timeout the server path owns src, so a late draw is dropped.
+        if (cancelled || timedOut) return
         url = URL.createObjectURL(blob)
         setSrc(url)
         setState('done')
@@ -126,7 +131,7 @@ export function PictureTalkImage({
     <div
       data-picture-talk-image
       data-image-state={state}
-      className="border-fl-border bg-fl-surface relative mx-auto mb-4 aspect-square w-full max-w-full shrink-0 overflow-hidden border sm:max-w-xs"
+      className="border-fl-border bg-fl-surface relative -mx-4 mb-4 aspect-square w-[calc(100%+2rem)] max-w-none shrink-0 overflow-hidden border sm:mx-auto sm:w-full sm:max-w-xs"
     >
       {(state === 'done' || state === 'server') && (
         // eslint-disable-next-line @next/next/no-img-element

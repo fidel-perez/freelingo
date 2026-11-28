@@ -219,4 +219,34 @@ describe('PictureTalkImage browser draw failures', () => {
     expect(mocks.apiFetch).toHaveBeenCalledTimes(2)
     expect(state(container)).toBe('server')
   })
+
+  it('ignores a draw that finishes after the 20 s timeout', async () => {
+    let finish: (blob: Blob) => void = () => undefined
+    mocks.drawImage.mockImplementation(
+      () => new Promise<Blob>((resolve) => (finish = resolve))
+    )
+    mocks.apiFetch.mockImplementation(() => Promise.resolve(pending()))
+    const { container } = mount()
+    await tick(20_000)
+    expect(state(container)).toBe('server-loading')
+    await act(async () => {
+      finish(new Blob(['late']))
+    })
+    await tick(0)
+    expect(state(container)).toBe('server-loading')
+    expect(container.querySelector('img')).toBeNull()
+    expect(screen.getByText('table')).toBeTruthy()
+  })
+
+  it('does not ask the server for a new scene before its own draw fails', async () => {
+    mocks.drawImage.mockRejectedValueOnce(new Error('image generation failed'))
+    mocks.apiFetch.mockResolvedValue(png())
+    const { rerender } = mount()
+    await tick(0)
+    asksServer()
+    mocks.drawImage.mockImplementation(() => new Promise(() => undefined))
+    rerender(<PictureTalkImage prompt="q" sceneId={8} words={['table']} />)
+    await tick(0)
+    expect(mocks.apiFetch).toHaveBeenCalledTimes(1)
+  })
 })
