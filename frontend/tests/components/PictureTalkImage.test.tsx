@@ -2,16 +2,24 @@ import { act, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { PictureTalkImage } from '@/components/conversation/PictureTalkImage'
 
-const mocks = vi.hoisted(() => ({ apiFetch: vi.fn() }))
+const mocks = vi.hoisted(() => ({
+  apiFetch: vi.fn(),
+  supported: false,
+  drawImage: vi.fn(),
+  baseUrl: '',
+}))
 
 vi.mock('@/lib/api', () => ({ apiFetch: mocks.apiFetch }))
 vi.mock('@/lib/browser-images', () => ({
-  browserImagesSupported: () => false,
-  drawImage: vi.fn(),
+  browserImagesSupported: () => mocks.supported,
+  drawImage: mocks.drawImage,
+}))
+vi.mock('next-intl', () => ({
+  useTranslations: () => (key: string) => key,
 }))
 vi.mock('@/store/auth', () => ({
   useAuthStore: (select: (s: unknown) => unknown) =>
-    select({ user: { images_enabled: true, image_model_base_url: '' } }),
+    select({ user: { images_enabled: true, image_model_base_url: mocks.baseUrl } }),
 }))
 
 const pending = () => new Response('{"status":"pending"}', { status: 202 })
@@ -31,6 +39,9 @@ describe('PictureTalkImage server polling', () => {
   beforeEach(() => {
     vi.useFakeTimers()
     mocks.apiFetch.mockReset()
+    mocks.drawImage.mockReset()
+    mocks.supported = false
+    mocks.baseUrl = ''
     URL.createObjectURL = vi.fn(() => 'blob:x')
     URL.revokeObjectURL = vi.fn()
   })
@@ -125,6 +136,87 @@ describe('PictureTalkImage server polling', () => {
     expect(state(container)).toBe('server-loading')
     await tick(10_000)
     expect(mocks.apiFetch).toHaveBeenCalledTimes(3)
+    expect(state(container)).toBe('server')
+  })
+})
+
+describe('PictureTalkImage browser draw failures', () => {
+  beforeEach(() => {
+    vi.useFakeTimers()
+    mocks.apiFetch.mockReset()
+    mocks.drawImage.mockReset()
+    mocks.supported = true
+    mocks.baseUrl = 'http://model'
+    URL.createObjectURL = vi.fn(() => 'blob:x')
+    URL.revokeObjectURL = vi.fn()
+  })
+  afterEach(() => vi.useRealTimers())
+
+  const mount = () =>
+    render(<PictureTalkImage prompt="p" sceneId={7} words={['table']} />)
+  const asksServer = () => {
+    expect(mocks.apiFetch).toHaveBeenCalledTimes(1)
+    expect(JSON.parse(mocks.apiFetch.mock.calls[0][1].body)).toEqual({
+      scene_id: 7,
+    })
+  }
+
+  it('keeps the browser draw first where WebGPU works', async () => {
+    mocks.drawImage.mockResolvedValue(new Blob(['png']))
+    const { container } = mount()
+    await tick(0)
+    expect(state(container)).toBe('done')
+    expect(mocks.apiFetch).not.toHaveBeenCalled()
+  })
+
+  it('asks the server when there is no navigator.gpu', async () => {
+    mocks.supported = false
+    mocks.apiFetch.mockResolvedValue(png())
+    const { container } = mount()
+    await tick(0)
+    expect(mocks.drawImage).not.toHaveBeenCalled()
+    asksServer()
+    expect(state(container)).toBe('server')
+  })
+
+  it.each([
+    ['a null adapter', 'no WebGPU adapter'],
+    ['a missing shader-f16', 'no shader-f16'],
+    ['a worker error', 'image worker failed'],
+    ['a failed generation', 'image generation failed'],
+  ])('asks the server after %s', async (_name, message) => {
+    mocks.drawImage.mockRejectedValue(new Error(message))
+    mocks.apiFetch.mockResolvedValue(png())
+    const { container } = mount()
+    await tick(0)
+    asksServer()
+    expect(state(container)).toBe('server')
+    expect(container.querySelector('img')).not.toBeNull()
+  })
+
+  it('asks the server when no image arrives within 20 s', async () => {
+    mocks.drawImage.mockImplementation(() => new Promise(() => undefined))
+    mocks.apiFetch.mockResolvedValue(png())
+    const { container } = mount()
+    await tick(19_999)
+    expect(mocks.apiFetch).not.toHaveBeenCalled()
+    await tick(1)
+    asksServer()
+    expect(state(container)).toBe('server')
+  })
+
+  it('shows a retry button when the server fails, and asks again on click', async () => {
+    mocks.drawImage.mockRejectedValue(new Error('no WebGPU adapter'))
+    mocks.apiFetch.mockResolvedValue(new Response('{}', { status: 500 }))
+    const { container } = mount()
+    await tick(0)
+    expect(state(container)).toBe('failed')
+    mocks.apiFetch.mockResolvedValue(png())
+    await act(async () => {
+      screen.getByText('imageRetry').click()
+    })
+    await tick(0)
+    expect(mocks.apiFetch).toHaveBeenCalledTimes(2)
     expect(state(container)).toBe('server')
   })
 })

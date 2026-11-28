@@ -2471,6 +2471,7 @@
     "toggle": "Visa bilder"
   },
   "pictureTalk": {
+    "imageRetry": "Försök igen",
     "entryTitle": "Bildsamtal",
     "entryDescription": "Prata med Lingu om en bild som ritas på din enhet, med ord från dina kort.",
     "entryStart": "Starta bildsamtal",

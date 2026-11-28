@@ -2471,6 +2471,7 @@
     "toggle": "Prikaži slike"
   },
   "pictureTalk": {
+    "imageRetry": "Pokušaj ponovno",
     "entryTitle": "Razgovor o slici",
     "entryDescription": "Razgovaraj s Lingom o slici nacrtanoj na tvom uređaju, s riječima s tvojih kartica.",
     "entryStart": "Pokreni razgovor o slici",

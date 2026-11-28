@@ -2471,6 +2471,7 @@
     "toggle": "Show images"
   },
   "pictureTalk": {
+    "imageRetry": "Try again",
     "entryTitle": "Picture talk",
     "entryDescription": "Talk with Lingu about a picture drawn on your device, using words from your cards.",
     "entryStart": "Start picture talk",

@@ -2471,6 +2471,7 @@
     "toggle": "Görselleri göster"
   },
   "pictureTalk": {
+    "imageRetry": "Tekrar dene",
     "entryTitle": "Resimle konuşma",
     "entryDescription": "Cihazında çizilen bir resim hakkında kartlarındaki kelimelerle Lingu ile konuş.",
     "entryStart": "Resimle konuşmayı başlat",

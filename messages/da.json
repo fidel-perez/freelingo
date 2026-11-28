@@ -2471,6 +2471,7 @@
     "toggle": "Vis billeder"
   },
   "pictureTalk": {
+    "imageRetry": "Prøv igen",
     "entryTitle": "Billedsamtale",
     "entryDescription": "Tal med Lingu om et billede, der tegnes på din enhed, med ord fra dine kort.",
     "entryStart": "Start billedsamtale",

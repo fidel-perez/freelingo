@@ -2471,6 +2471,7 @@
     "toggle": "Afficher les images"
   },
   "pictureTalk": {
+    "imageRetry": "Réessayer",
     "entryTitle": "Conversation sur image",
     "entryDescription": "Parlez avec Lingu d'une image dessinée sur votre appareil, avec des mots de vos cartes.",
     "entryStart": "Commencer la conversation sur image",

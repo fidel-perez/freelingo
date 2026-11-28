@@ -1,5 +1,6 @@
 'use client'
 
+import { useTranslations } from 'next-intl'
 import { useEffect, useState } from 'react'
 import { apiFetch } from '@/lib/api'
 import { browserImagesSupported, drawImage } from '@/lib/browser-images'
@@ -11,6 +12,7 @@ type ImageState =
 const POLL_MS = 3000
 const POLL_LIMIT_MS = 4 * 60 * 1000
 const BACKOFF_MS = 10_000
+const DRAW_LIMIT_MS = 20_000
 
 /** Draws the scene in the browser, or fetches the Mac-drawn image when the browser cannot; `data-image-state` follows it. */
 export function PictureTalkImage({
@@ -24,15 +26,18 @@ export function PictureTalkImage({
 }) {
   const enabled = useAuthStore((s) => s.user?.images_enabled)
   const baseUrl = useAuthStore((s) => s.user?.image_model_base_url)
+  const t = useTranslations('pictureTalk')
   const canDraw = !!enabled && !!baseUrl && browserImagesSupported()
-  const useServer = !!enabled && !canDraw
+  const [drawFailed, setDrawFailed] = useState(false)
+  const [retryKey, setRetryKey] = useState(0)
+  const useServer = !!enabled && (!canDraw || drawFailed)
   const [drawState, setState] = useState<ImageState>('loading')
   const [serverState, setServerState] = useState<ImageState>('server-loading')
   const [src, setSrc] = useState('')
-  const state: ImageState = canDraw
-    ? drawState
-    : useServer
-      ? serverState
+  const state: ImageState = useServer
+    ? serverState
+    : canDraw
+      ? drawState
       : 'unsupported'
 
   useEffect(() => {
@@ -41,18 +46,27 @@ export function PictureTalkImage({
     let url = ''
     setState('loading')
     setSrc('')
+    setDrawFailed(false)
+    // Any draw failure, or no image after DRAW_LIMIT_MS, hands the scene to the image server.
+    const giveUp = () => {
+      if (!cancelled) setDrawFailed(true)
+    }
+    const limit = setTimeout(giveUp, DRAW_LIMIT_MS)
     void drawImage(baseUrl, prompt)
       .then((blob) => {
+        clearTimeout(limit)
         if (cancelled) return
         url = URL.createObjectURL(blob)
         setSrc(url)
         setState('done')
       })
       .catch(() => {
-        if (!cancelled) setState('failed')
+        clearTimeout(limit)
+        giveUp()
       })
     return () => {
       cancelled = true
+      clearTimeout(limit)
       if (url) URL.revokeObjectURL(url)
     }
   }, [canDraw, baseUrl, prompt])
@@ -103,7 +117,7 @@ export function PictureTalkImage({
       clearTimeout(timer)
       if (url) URL.revokeObjectURL(url)
     }
-  }, [useServer, sceneId])
+  }, [useServer, sceneId, retryKey])
 
   const showWords =
     state === 'unsupported' || state === 'failed' || state === 'server-loading'
@@ -112,11 +126,20 @@ export function PictureTalkImage({
     <div
       data-picture-talk-image
       data-image-state={state}
-      className="border-fl-border bg-fl-surface mx-auto mb-4 aspect-square w-full max-w-xs shrink-0 overflow-hidden border"
+      className="border-fl-border bg-fl-surface relative mx-auto mb-4 aspect-square w-full max-w-full shrink-0 overflow-hidden border sm:max-w-xs"
     >
       {(state === 'done' || state === 'server') && (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={src} alt="" className="h-full w-full object-cover" />
+      )}
+      {state === 'failed' && (
+        <button
+          type="button"
+          onClick={() => setRetryKey((n) => n + 1)}
+          className="border-fl-border text-fl-text absolute bottom-2 left-1/2 -translate-x-1/2 border px-3 py-1 font-sans text-sm"
+        >
+          {t('imageRetry')}
+        </button>
       )}
       {showWords && (
         <p

@@ -40,6 +40,20 @@ function drawInWorker(baseUrl: string, prompt: string): Promise<Blob> {
   })
 }
 
+// Rejects before any download when the GPU cannot run the model: no adapter, or no shader-f16.
+async function requireGpu(): Promise<void> {
+  const gpu = (
+    navigator as Navigator & {
+      gpu?: {
+        requestAdapter: () => Promise<{ features: Set<string> } | null>
+      }
+    }
+  ).gpu
+  const adapter = await gpu?.requestAdapter()
+  if (!adapter) throw new Error('no WebGPU adapter')
+  if (!adapter.features.has('shader-f16')) throw new Error('no shader-f16')
+}
+
 export async function drawImage(
   baseUrl: string,
   prompt: string
@@ -47,6 +61,7 @@ export async function drawImage(
   const cache = await caches.open(IMAGE_CACHE)
   const hit = await cache.match(cacheKey(prompt))
   if (hit) return hit.blob()
+  await requireGpu()
   const run = queue.then(() => drawInWorker(baseUrl, prompt))
   queue = run.catch(() => undefined)
   const blob = await run

@@ -2471,6 +2471,7 @@
     "toggle": "Näytä kuvat"
   },
   "pictureTalk": {
+    "imageRetry": "Yritä uudelleen",
     "entryTitle": "Kuvakeskustelu",
     "entryDescription": "Keskustele Lingun kanssa laitteellasi piirretystä kuvasta käyttäen korttiesi sanoja.",
     "entryStart": "Aloita kuvakeskustelu",

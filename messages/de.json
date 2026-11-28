@@ -2471,6 +2471,7 @@
     "toggle": "Bilder anzeigen"
   },
   "pictureTalk": {
+    "imageRetry": "Erneut versuchen",
     "entryTitle": "Bildgespräch",
     "entryDescription": "Sprich mit Lingu über ein Bild, das auf deinem Gerät gezeichnet wird, mit Wörtern aus deinen Karten.",
     "entryStart": "Bildgespräch starten",

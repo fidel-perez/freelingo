@@ -2471,6 +2471,7 @@
     "toggle": "Mostra le immagini"
   },
   "pictureTalk": {
+    "imageRetry": "Riprova",
     "entryTitle": "Conversazione sull'immagine",
     "entryDescription": "Parla con Lingu di un'immagine disegnata sul tuo dispositivo, con parole delle tue schede.",
     "entryStart": "Avvia la conversazione sull'immagine",

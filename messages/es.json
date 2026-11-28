@@ -2471,6 +2471,7 @@
     "toggle": "Mostrar imágenes"
   },
   "pictureTalk": {
+    "imageRetry": "Reintentar",
     "entryTitle": "Charla con imágenes",
     "entryDescription": "Habla con Lingu sobre una imagen dibujada en tu dispositivo, con palabras de tus tarjetas.",
     "entryStart": "Empezar charla con imágenes",

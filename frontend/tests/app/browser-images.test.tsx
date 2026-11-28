@@ -43,7 +43,11 @@ class FakeWorker {
 
 function setGpu(on: boolean) {
   Object.defineProperty(navigator, 'gpu', {
-    value: on ? {} : undefined,
+    value: on
+      ? {
+          requestAdapter: async () => ({ features: new Set(['shader-f16']) }),
+        }
+      : undefined,
     configurable: true,
   })
   if (!on) delete (navigator as unknown as Record<string, unknown>).gpu
@@ -114,6 +118,7 @@ describe('browser images', () => {
   })
 
   it('recreates the worker after it fails to load', async () => {
+    setGpu(true)
     vi.resetModules()
     const created: FailingWorker[] = []
     class FailingWorker extends FakeWorker {
