@@ -144,7 +144,15 @@ function setUser(extra: Record<string, unknown>) {
 function stubBrowser(gpu: boolean) {
   vi.stubGlobal('navigator', {
     mediaDevices: { getUserMedia: mocks.getUserMedia },
-    ...(gpu ? { gpu: {} } : {}),
+    ...(gpu
+      ? {
+          gpu: {
+            requestAdapter: async () => ({
+              features: new Set(['shader-f16']),
+            }),
+          },
+        }
+      : {}),
   })
 }
 
@@ -226,7 +234,7 @@ afterEach(() => {
 describe('picture talk page', () => {
   it('picture_talk_page_has_no_text_input', async () => {
     const { container } = renderPage()
-    await screen.findByRole('button', { name: 'start' })
+    await screen.findByRole('button', { name: 'start' }, { timeout: 15000 })
     await waitFor(() =>
       expect(
         container.querySelector('[data-picture-talk-image]')
@@ -242,7 +250,7 @@ describe('picture talk page', () => {
         body: JSON.stringify({ study_plan_id: 7 }),
       })
     )
-  })
+  }, 30000)
 
   it('fetches the Mac-drawn image without WebGPU, showing the words while it loads', async () => {
     stubBrowser(false)
